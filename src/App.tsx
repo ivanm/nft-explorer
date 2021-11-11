@@ -8,8 +8,8 @@ import Navigator from "./Navigator";
 
 const App = () => {
   return (
-    <Box>
-      <Navigator/>
+    <Box pr="30px">
+      <Navigator />
       <Header />
       <Box as="main" pt="10px">
         <Gallery />

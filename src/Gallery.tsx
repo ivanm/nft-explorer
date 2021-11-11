@@ -71,6 +71,7 @@ const Gallery: React.FC<RouteComponentProps> = () => {
     width: window.innerWidth,
     height: window.innerHeight
   });
+  const [itemSize, setItemSize] = useState(300);
 
   // References
   // Array of tokens that finished delaying and ready to load
@@ -87,8 +88,13 @@ const Gallery: React.FC<RouteComponentProps> = () => {
   );
   // Delay of image loading
   const imageDelayCounter: any = useRef(0);
+  // imageDelayCounter.current = 0;
+  const jsonDelayCounter: any = useRef(0);
+  // jsonDelayCounter.current = 0;
+
   // Map of the Promises of the tokens to be loaded after delay
   const delayedImagesMap: any = useRef({});
+  const delayedJsonMap: any = useRef({});
   // Map of the images of the tokens already loaded
   const imagesLoadedMap: any = useRef({});
 
@@ -186,42 +192,23 @@ const Gallery: React.FC<RouteComponentProps> = () => {
     tokenURIs
   ]);
 
-  // TODO: Make this cancelable
-  const fetchViewportJSON = debounce(async () => {
+  const refreshViewport = debounce(async () => {
     imageDelayCounter.current = 0;
-    let sleepCounter = 1;
+    jsonDelayCounter.current = 0;
 
     Object.values(delayedImagesMap.current).forEach((e: any) => {
       if (e && e.controller) {
         e.controller.abort();
       }
     });
-
     delayedImagesMap.current = {};
-    for (
-      let index = cellRendererListRef.current.includes(1)
-        ? 0
-        : Math.floor(cellRendererListRef.current.length / 3);
-      index < cellRendererListRef.current.length;
-      index++
-    ) {
-      if (
-        !downloadedMetadataTokens.current.includes(
-          cellRendererListRef.current[index]
-        )
-      ) {
-        await sleep(sleepCounter * 500);
-        // It checks again if not exists on downloadedMetadataTokens, because maybe it changed
-        if (
-          !downloadedMetadataTokens.current.includes(
-            cellRendererListRef.current[index]
-          )
-        ) {
-          fetchTokenJSON(cellRendererListRef.current[index]);
-        }
-        sleepCounter++;
+
+    Object.values(delayedJsonMap.current).forEach((e: any) => {
+      if (e && e.controller) {
+        e.controller.abort();
       }
-    }
+    });
+    delayedJsonMap.current = {};
   }, 2000);
 
   // Effect to load when a different contract address is detected
@@ -233,31 +220,37 @@ const Gallery: React.FC<RouteComponentProps> = () => {
           e.controller.abort();
         }
       });
-      setTimeout(() => {
-        delayedImagesMap.current = {};
-        imagesLoadedMap.current = {};
-        imageDelayCounter.current = 0;
-        pendingUriTokens.current = [];
-      }, 100);
+      Object.values(delayedJsonMap.current).forEach((e: any) => {
+        if (e && e.controller) {
+          e.controller.abort();
+        }
+      });
+      delayedImagesMap.current = {};
+      delayedJsonMap.current = {};
+      imagesLoadedMap.current = {};
+      // imageDelayCounter.current = 0;
+      // jsonDelayCounter.current = 0;
+      pendingUriTokens.current = [];
+      downloadedMetadataTokens.current = [];
     }
-  }, [activeContractAddress, prevActiveContractAddress, fetchViewportJSON]);
+  }, [activeContractAddress, prevActiveContractAddress]);
 
   // Event that is triggered after a scroll is made on the page
   useEffect(() => {
-    window.addEventListener("scroll", fetchViewportJSON);
+    window.addEventListener("scroll", refreshViewport);
     return () => {
-      window.removeEventListener("scroll", fetchViewportJSON);
+      window.removeEventListener("scroll", refreshViewport);
     };
-  }, [activeContractAddress, dataByContract, fetchViewportJSON]);
+  }, [activeContractAddress, dataByContract, refreshViewport]);
 
   // Effect when first loaded all the images (after fetching all URIS)
   const prevLoadedUris = usePrevious(loadedUris);
   useEffect(() => {
     if (prevLoadedUris === false && loadedUris === true) {
-      fetchViewportJSON();
+      refreshViewport();
       downloadedMetadataTokens.current = [];
     }
-  }, [loadedUris, prevLoadedUris, fetchViewportJSON]);
+  }, [loadedUris, prevLoadedUris, refreshViewport]);
 
   // Callback for obtaining the JSON Metadata
   const fetchTokenJSON = useCallback(
@@ -292,14 +285,6 @@ const Gallery: React.FC<RouteComponentProps> = () => {
         ];
         return data;
       } catch (error) {
-        const timeout = delayedImagesMap.current[tokenId];
-        clearTimeout(timeout);
-
-        let newDelayedImagesMap = { ...delayedImagesMap.current };
-        delete newDelayedImagesMap[tokenId];
-        delayedImagesMap.current = newDelayedImagesMap;
-
-        imageDelayCounter.current = 0;
         console.log(error);
       }
     },
@@ -318,6 +303,11 @@ const Gallery: React.FC<RouteComponentProps> = () => {
 
   // Updates the state  with the window values
   const resize = () => {
+    if (window.innerWidth < 500) {
+      setItemSize(120);
+    } else {
+      setItemSize(200);
+    }
     setWindowSize({
       height: window.innerHeight,
       width: window.innerWidth
@@ -343,26 +333,39 @@ const Gallery: React.FC<RouteComponentProps> = () => {
 
     img.src = imgUrl;
     img.onload = () => {
-      imagesLoadedMap.current = {
-        ...imagesLoadedMap.current,
-        [tokenId]: img.src
-      };
+      if (!signal.aborted) {
+        imagesLoadedMap.current = {
+          ...imagesLoadedMap.current,
+          [tokenId]: img.src
+        };
 
-      let newDelayedImagesMap = { ...delayedImagesMap.current };
-      delete newDelayedImagesMap[tokenId];
-      delayedImagesMap.current = newDelayedImagesMap;
+        let newDelayedImagesMap = { ...delayedImagesMap.current };
+        delete newDelayedImagesMap[tokenId];
+        delayedImagesMap.current = newDelayedImagesMap;
 
-      forceUpdate();
+        forceUpdate();
+      }
     };
-    await sleep(30000, signal);
+    await sleep(20000, signal);
 
-    // If image is not loading, remove the timeout (so it can be created again)
+    // If image is not loading, retry
     if (!img.complete || !img.naturalWidth) {
       img.src = "";
+
+      const controller = new AbortController();
+      const signal = controller.signal;
+
+      const promise = delayCachedImage(tokenId, 0, signal);
+
       let newDelayedImagesMap = { ...delayedImagesMap.current };
-      delete newDelayedImagesMap[tokenId];
+      newDelayedImagesMap[tokenId] = { promise, controller };
       delayedImagesMap.current = newDelayedImagesMap;
     }
+  };
+
+  const delayJson = async (tokenId: number, sleepTime: number, signal: any) => {
+    await sleep(sleepTime, signal);
+    fetchTokenJSON(tokenId);
   };
 
   // Function called for render the dinaymic table
@@ -370,7 +373,7 @@ const Gallery: React.FC<RouteComponentProps> = () => {
   const cellRendererListRef = useRef(cellRendererList);
   cellRendererListRef.current = cellRendererList;
   const cellRenderer = ({ index, style, ref }: any) => {
-    const times = Math.floor(containerWidth / 200);
+    const times = Math.floor(containerWidth / itemSize);
     const start = index * times;
     const cells = new Array(times)
       .fill({})
@@ -379,12 +382,32 @@ const Gallery: React.FC<RouteComponentProps> = () => {
       const tokenId = parseInt(
         Object.keys(dataByContract[activeContractAddress])[start + i]
       );
+
       if (!cellRendererList.includes(tokenId)) {
         cellRendererList.push(tokenId);
       }
       if (
         dataByContract[activeContractAddress][tokenId] &&
+        (dataByContract[activeContractAddress][tokenId].json
+          ? !dataByContract[activeContractAddress][tokenId].json.image
+          : true) &&
+        !delayedJsonMap.current[tokenId]
+      ) {
+        const controller = new AbortController();
+        const signal = controller.signal;
+
+        const promise = delayJson(tokenId, jsonDelayCounter.current, signal);
+        delayedJsonMap.current = {
+          ...delayedJsonMap.current,
+          [tokenId]: { promise, controller }
+        };
+        jsonDelayCounter.current = jsonDelayCounter.current + 250;
+      }
+
+      if (
+        dataByContract[activeContractAddress][tokenId] &&
         dataByContract[activeContractAddress][tokenId].json &&
+        dataByContract[activeContractAddress][tokenId].json.image &&
         delayFinishedTokens.current.includes(tokenId) &&
         !delayedImagesMap.current[tokenId] &&
         !imagesLoadedMap.current[tokenId]
@@ -421,8 +444,8 @@ const Gallery: React.FC<RouteComponentProps> = () => {
             >
               <Box position="relative" _hover={{ background: "blue" }}>
                 <Flex
-                  height="200px"
-                  width="200px"
+                  height={itemSize}
+                  width={itemSize}
                   bg="gray.900"
                   opacity={imagesLoadedMap.current[tokenId] ? 0 : 1}
                   position="absolute"
@@ -444,6 +467,7 @@ const Gallery: React.FC<RouteComponentProps> = () => {
                 <DelayedImage
                   setFinishedDelay={addFinishedDelay}
                   boxSize="200px"
+                  itemSize={itemSize}
                   index={index}
                   alt={`${tokenId}`}
                   title={`${tokenId}`}
@@ -497,9 +521,9 @@ const Gallery: React.FC<RouteComponentProps> = () => {
                       height={window.innerHeight}
                       itemCount={Math.ceil(
                         totalSupply.toNumber() /
-                          Math.floor(containerWidth / 200)
+                          Math.floor(containerWidth / itemSize)
                       )}
-                      itemSize={200}
+                      itemSize={itemSize}
                       width={window.innerWidth}
                       onScroll={onScroll}
                     >
@@ -512,7 +536,7 @@ const Gallery: React.FC<RouteComponentProps> = () => {
           </Flex>
         </Fragment>
       ) : (
-        <Flex height="50vh" align="center" justify="center" direction="column">
+        <Flex p={5} mt={8} align="center" justify="center" direction="column">
           <Box color="gray.700">
             <Spinner />
           </Box>

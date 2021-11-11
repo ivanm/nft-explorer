@@ -67,17 +67,22 @@ const Header = () => {
       alignItems="center"
     >
       <Flex borderRadius="20px" bg="gray.600" p={4} m={5} justify="center">
-        <Flex width="800px" direction="column">
+        <Flex direction="column">
           <Heading textAlign="center" as="h1">
             NFT Explorer
           </Heading>
-          <Box textAlign="center">
+          <Box textAlign="center"pt={2} pb={2}>
             Enter any Contract Address of an NFT Collection or select any of the
             available presets
           </Box>
-          <Flex justify="space-around" align="center" height="100%">
+          <Flex
+            justify="space-around"
+            align="center"
+            height="100%"
+            direction={{ base: "column", md: "row" }}
+          >
             <Select
-              width="250px"
+              width={{ base: "100%", md: "180px" }}
               onChange={({ target: { value } }) => {
                 setPreset(value);
                 if (value) {
@@ -97,38 +102,43 @@ const Header = () => {
               </option>
             </Select>
             <Input
+              mt={{ base: 2, md: 0 }}
               ml="5px"
-              minWidth="420px"
+              width={{ base: "100%", md: "420px" }}
               placeholder="Address"
               value={formContractAddress}
               onChange={({ target: { value } }) => {
                 setFormContractAddress(value);
               }}
             />
-            <Button
-              ml="5px"
-              onClick={() => {
-                dispatch(changeActiveContractAddress(formContractAddress));
+            <Flex mt={{ base: 2, md: 0 }}>
+              <Button
+                ml="5px"
+                onClick={() => {
+                  dispatch(changeActiveContractAddress(formContractAddress));
 
-                setPreset(
-                  presets.find(({ address }) => address === formContractAddress)
-                    ? presets.find(
-                        ({ address }) => address === formContractAddress
-                      ).address
-                    : ""
-                );
-              }}
-            >
-              Go
-            </Button>
-            <Button
-              ml="5px"
-              onClick={() => {
-                setShowOptions(!showOptions);
-              }}
-            >
-              Options
-            </Button>
+                  setPreset(
+                    presets.find(
+                      ({ address }) => address === formContractAddress
+                    )
+                      ? presets.find(
+                          ({ address }) => address === formContractAddress
+                        ).address
+                      : ""
+                  );
+                }}
+              >
+                Go
+              </Button>
+              <Button
+                ml="5px"
+                onClick={() => {
+                  setShowOptions(!showOptions);
+                }}
+              >
+                Options
+              </Button>
+            </Flex>
           </Flex>
           {showOptions ? (
             <Flex
@@ -143,7 +153,6 @@ const Header = () => {
                   <FormLabel>CORS Proxy</FormLabel>
                   <Input
                     ml="5px"
-                    minWidth="420px"
                     placeholder=""
                     value={formCorsProxyUrl}
                     onChange={({ target: { value } }) => {

@@ -14,6 +14,7 @@ interface DelayedImageProps {
   isFinishedDelay: boolean;
   isLoadedImage: boolean;
   metadata: any;
+  itemSize: number;
 }
 
 const DelayedImage = ({
@@ -27,7 +28,8 @@ const DelayedImage = ({
   setFinishedDelay,
   isFinishedDelay,
   isLoadedImage,
-  metadata
+  metadata,
+  itemSize
 }: DelayedImageProps) => {
   useEffect(() => {
     const delayed = async () => {
@@ -41,15 +43,14 @@ const DelayedImage = ({
 
   return isFinishedDelay && isLoadedImage && metadata && metadata.image ? (
     <Image
-      boxSize={boxSize}
+      boxSize={itemSize}
       alt={alt}
       title={title}
       loading={loading}
       src={src}
     />
   ) : (
-    <Flex height="200px" width="200px">
-    </Flex>
+    <Flex height={itemSize} width={itemSize}></Flex>
   );
 };
 export default DelayedImage;

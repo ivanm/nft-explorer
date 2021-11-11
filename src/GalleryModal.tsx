@@ -8,11 +8,7 @@ import {
   Flex
 } from "@chakra-ui/react";
 
-const GalleryModal = ({
-  tokenId,
-  imgUrl,
-  onClose
-}: GalleryModalProps) => {
+const GalleryModal = ({ tokenId, imgUrl, onClose }: GalleryModalProps) => {
   useEffect(() => {
     resize();
     window.addEventListener("resize", () => {
@@ -28,8 +24,14 @@ const GalleryModal = ({
     width: window.innerWidth,
     height: window.innerHeight
   });
+  const [dimension, setDimension] = useState("width");
 
   const resize = () => {
+    if (window.innerWidth > window.innerHeight) {
+      setDimension("height");
+    } else {
+      setDimension("width");
+    }
     setWindowSize({
       height: window.innerHeight,
       width: window.innerWidth
@@ -45,17 +47,20 @@ const GalleryModal = ({
       size={"full"}
     >
       <ModalOverlay />
-      <ModalContent
-        margin="0"
-        bg="rgba(0,0,0,0.5)"
-        onClick={e => {
-          const element = e.target as HTMLElement;
-          if (element.classList.contains("image-container")) {
-            onClose();
-          }
-        }}
-      >
-        <ModalBody>
+      <ModalContent margin="0" bg="rgba(0,0,0,0.5)">
+        <ModalBody
+          display="flex"
+          justifyContent="center"
+          onClick={e => {
+            const element = e.target as HTMLElement;
+            if (
+              element.classList.contains("chakra-modal__body") ||
+              element.classList.contains("image-container")
+            ) {
+              onClose();
+            }
+          }}
+        >
           <Flex
             height=""
             justify="center"
@@ -64,7 +69,8 @@ const GalleryModal = ({
           >
             <Image
               maxWidth="none"
-              height="calc(100vh - 50px)"
+              height={dimension === "height" ? "calc(100vh - 50px)" : "auto"}
+              width={dimension === "width" ? "calc(100vw - 50px)" : "auto"}
               objectFit="cover"
               src={imgUrl}
             />
