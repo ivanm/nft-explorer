@@ -25,12 +25,14 @@ import ipfsGatewayUrl from "./helpers/ipfsGatewayUrl";
 import sleep from "./helpers/sleep";
 
 const Gallery: React.FC<RouteComponentProps> = () => {
+  // Common hooks
+  const forceUpdate = useForceUpdate();
+
   // useDapp hooks
   const { chainId } = useEthers();
 
-  // redux
+  // Redux
   const dispatch = useDispatch();
-
   const dataByContract = useSelector(
     ({ contracts: { dataByContract } }: RootState) => dataByContract
   );
@@ -45,8 +47,7 @@ const Gallery: React.FC<RouteComponentProps> = () => {
     ({ options: { ipfsGateway } }: RootState) => ipfsGateway
   );
 
-  // calculated
-  const forceUpdate = useForceUpdate();
+  // Calculated
   const containerWidth = window.innerWidth * 0.9;
   const wrongNetWork = chainId !== configChainId;
   const missingUri = dataByContract[activeContractAddress]
@@ -54,25 +55,7 @@ const Gallery: React.FC<RouteComponentProps> = () => {
         ({ uri }: any) => !uri
       ).length
     : null;
-
-  // references
-  const finishedRef: any = useRef([]);
-  const pendingUriTokensRef = useRef<number[]>([]);
-  // Array of tokens that have downloaded JSON Metadata
-  const fetchedRef: any = useRef(
-    dataByContract[activeContractAddress]
-      ? Object.keys(dataByContract[activeContractAddress])
-          .filter(key => dataByContract[activeContractAddress][key].json)
-          .map(e => parseInt(e))
-      : []
-  );
-  const [tokenModal, setTokenModal] = useState<number | null>(null);
-  // Map of the active timeoutes
-  const timeoutsRef: any = useRef({});
-  // Map of the counter used for timeouts
-  const counterRef: any = useRef(0);
-  // Map of the tokens already loaded
-  const loadedRef: any = useRef({});
+  // Flag that indicates all URIs of the gallery have been obtained
   const loadedUris =
     dataByContract &&
     dataByContract[activeContractAddress] &&
@@ -80,16 +63,57 @@ const Gallery: React.FC<RouteComponentProps> = () => {
       (e: any) => e.uri
     );
 
-  // contract hooks
+  // States
+  // State of the modal, stores the tokenId to show or null if hidden
+  const [tokenModal, setTokenModal] = useState<number | null>(null);
+  // Stores Window sizes, it rerenders page with each resize
+  const [, setWindowSize] = useState({
+    width: window.innerWidth,
+    height: window.innerHeight
+  });
+
+  // References
+  // Array of tokens that finished delaying and ready to load
+  const delayFinishedTokens: any = useRef([]);
+  // Array of tokens that have not yet gotten a URI
+  const pendingUriTokens = useRef<number[]>([]);
+  // Array of tokens that have downloaded JSON Metadata
+  const downloadedMetadataTokens: any = useRef(
+    dataByContract[activeContractAddress]
+      ? Object.keys(dataByContract[activeContractAddress])
+          .filter(key => dataByContract[activeContractAddress][key].json)
+          .map(e => parseInt(e))
+      : []
+  );
+  // Delay of image loading
+  const imageDelayCounter: any = useRef(0);
+  // Map of the Promises of the tokens to be loaded after delay
+  const delayedImagesMap: any = useRef({});
+  // Map of the images of the tokens already loaded
+  const imagesLoadedMap: any = useRef({});
+
+  // Contract hooks
   const totalSupply = useTotalSupply(activeContractAddress);
-  const [tokensByIndex] = useTokenByIndex(activeContractAddress, [0]);
+  const [initialToken] = useTokenByIndex(activeContractAddress, [0]);
   const tokenURIs = useTokenURI(
     activeContractAddress,
-    pendingUriTokensRef.current
+    pendingUriTokens.current
   );
 
+  // Effect to recalculate size
+  useEffect(() => {
+    resize();
+    window.addEventListener("resize", () => {
+      resize();
+    });
+
+    return () => {
+      window.removeEventListener("resize", resize);
+    };
+  }, []);
+
   // Effect to initialize store with the contract token skeleton data
-  const initialValue = tokensByIndex ? tokensByIndex[0] : null;
+  const initialValue = initialToken ? initialToken[0] : null;
   useEffect(() => {
     if (initialValue && totalSupply && !dataByContract[activeContractAddress]) {
       dispatch(
@@ -109,7 +133,7 @@ const Gallery: React.FC<RouteComponentProps> = () => {
   ]);
 
   // Effect that activates after totalSupply is obtained, and store has been initialized
-  // Finds the next tokens that have not yet get any uri
+  // Finds the next tokens that have not got any uri
   useEffect(() => {
     if (totalSupply && dataByContract[activeContractAddress]) {
       let list: number[] = [];
@@ -120,7 +144,7 @@ const Gallery: React.FC<RouteComponentProps> = () => {
       });
 
       list = list.filter((_, index) => index <= 500);
-      pendingUriTokensRef.current = list;
+      pendingUriTokens.current = list;
     }
   }, [activeContractAddress, dispatch, totalSupply, dataByContract]);
 
@@ -132,7 +156,7 @@ const Gallery: React.FC<RouteComponentProps> = () => {
       let tokensToDispatch: any[] = [];
       let tokensToDispatchIds: any[] = [];
 
-      pendingUriTokensRef.current.forEach((t, index) => {
+      pendingUriTokens.current.forEach((t, index) => {
         if (tokenURIs[index] && !dataByContract[activeContractAddress][t].uri) {
           // TODO Optimize this
           tokensToDispatch = [
@@ -155,7 +179,7 @@ const Gallery: React.FC<RouteComponentProps> = () => {
   }, [
     activeContractAddress,
     stringCache,
-    pendingUriTokensRef,
+    pendingUriTokens,
     totalSupply,
     dataByContract,
     dispatch,
@@ -164,16 +188,16 @@ const Gallery: React.FC<RouteComponentProps> = () => {
 
   // TODO: Make this cancelable
   const fetchViewportJSON = debounce(async () => {
-    counterRef.current = 0;
+    imageDelayCounter.current = 0;
     let sleepCounter = 1;
 
-    Object.values(timeoutsRef.current).forEach((e: any) => {
+    Object.values(delayedImagesMap.current).forEach((e: any) => {
       if (e && e.controller) {
         e.controller.abort();
       }
     });
 
-    timeoutsRef.current = {};
+    delayedImagesMap.current = {};
     for (
       let index = cellRendererListRef.current.includes(1)
         ? 0
@@ -181,10 +205,18 @@ const Gallery: React.FC<RouteComponentProps> = () => {
       index < cellRendererListRef.current.length;
       index++
     ) {
-      if (!fetchedRef.current.includes(cellRendererListRef.current[index])) {
+      if (
+        !downloadedMetadataTokens.current.includes(
+          cellRendererListRef.current[index]
+        )
+      ) {
         await sleep(sleepCounter * 500);
-        // It checks again if not exists on fetchedRef, because maybe it changed
-        if (!fetchedRef.current.includes(cellRendererListRef.current[index])) {
+        // It checks again if not exists on downloadedMetadataTokens, because maybe it changed
+        if (
+          !downloadedMetadataTokens.current.includes(
+            cellRendererListRef.current[index]
+          )
+        ) {
           fetchTokenJSON(cellRendererListRef.current[index]);
         }
         sleepCounter++;
@@ -192,21 +224,20 @@ const Gallery: React.FC<RouteComponentProps> = () => {
     }
   }, 2000);
 
-  // Effect to load when a different contract address is used
-  const prevLoadedUris = usePrevious(loadedUris);
+  // Effect to load when a different contract address is detected
   const prevActiveContractAddress = usePrevious(activeContractAddress);
   useEffect(() => {
     if (prevActiveContractAddress !== activeContractAddress) {
-      Object.values(timeoutsRef.current).forEach((e: any) => {
+      Object.values(delayedImagesMap.current).forEach((e: any) => {
         if (e && e.controller) {
           e.controller.abort();
         }
       });
       setTimeout(() => {
-        timeoutsRef.current = {};
-        loadedRef.current = {};
-        counterRef.current = 0;
-        pendingUriTokensRef.current = [];
+        delayedImagesMap.current = {};
+        imagesLoadedMap.current = {};
+        imageDelayCounter.current = 0;
+        pendingUriTokens.current = [];
       }, 100);
     }
   }, [activeContractAddress, prevActiveContractAddress, fetchViewportJSON]);
@@ -220,14 +251,15 @@ const Gallery: React.FC<RouteComponentProps> = () => {
   }, [activeContractAddress, dataByContract, fetchViewportJSON]);
 
   // Effect when first loaded all the images (after fetching all URIS)
+  const prevLoadedUris = usePrevious(loadedUris);
   useEffect(() => {
     if (prevLoadedUris === false && loadedUris === true) {
       fetchViewportJSON();
-      fetchedRef.current = [];
+      downloadedMetadataTokens.current = [];
     }
   }, [loadedUris, prevLoadedUris, fetchViewportJSON]);
 
-  // Callback for obraining the JSON Metadata
+  // Callback for obtaining the JSON Metadata
   const fetchTokenJSON = useCallback(
     async (tokenId: number) => {
       if (
@@ -242,13 +274,10 @@ const Gallery: React.FC<RouteComponentProps> = () => {
         if (uri.startsWith("ipfs:")) {
           uri = ipfsGatewayUrl(uri, ipfsGateway);
         } else if (corsProxyUrl) {
-          // uri = "https://cors-anywhere.herokuapp.com/" + uri;
           uri = corsProxyUrl + uri;
         }
 
-        const response = await fetch(uri, {
-          headers: { Origin: "http://localhost" }
-        });
+        const response = await fetch(uri);
         const data = await response.text();
 
         dispatch(
@@ -257,17 +286,20 @@ const Gallery: React.FC<RouteComponentProps> = () => {
             tokens: [{ tokenId, json: JSON.parse(data) }]
           })
         );
-        fetchedRef.current = [...fetchedRef.current, tokenId];
+        downloadedMetadataTokens.current = [
+          ...downloadedMetadataTokens.current,
+          tokenId
+        ];
         return data;
       } catch (error) {
-        const timeout = timeoutsRef.current[tokenId];
+        const timeout = delayedImagesMap.current[tokenId];
         clearTimeout(timeout);
 
-        let newTimeoutsRef = { ...timeoutsRef.current };
-        delete newTimeoutsRef[tokenId];
-        timeoutsRef.current = newTimeoutsRef;
+        let newDelayedImagesMap = { ...delayedImagesMap.current };
+        delete newDelayedImagesMap[tokenId];
+        delayedImagesMap.current = newDelayedImagesMap;
 
-        counterRef.current = 0;
+        imageDelayCounter.current = 0;
         console.log(error);
       }
     },
@@ -278,13 +310,21 @@ const Gallery: React.FC<RouteComponentProps> = () => {
   let toggle = true;
   const addFinishedDelay = () => {
     if (toggle) {
-      finishedRef.current = cellRendererList;
+      delayFinishedTokens.current = cellRendererList;
       toggle = false;
       forceUpdate();
     }
   };
 
-  // Function that receives the token ID, and an sleep time
+  // Updates the state  with the window values
+  const resize = () => {
+    setWindowSize({
+      height: window.innerHeight,
+      width: window.innerWidth
+    });
+  };
+
+  // Function that receives the token ID and an sleep time
   // it will generate the image after sleep is finished
   const delayCachedImage = async (
     tokenId: number,
@@ -303,24 +343,25 @@ const Gallery: React.FC<RouteComponentProps> = () => {
 
     img.src = imgUrl;
     img.onload = () => {
-      // await img.decode();
-      loadedRef.current = { ...loadedRef.current, [tokenId]: img.src };
+      imagesLoadedMap.current = {
+        ...imagesLoadedMap.current,
+        [tokenId]: img.src
+      };
 
-      let newTimeoutsRef = { ...timeoutsRef.current };
-      delete newTimeoutsRef[tokenId];
-      timeoutsRef.current = newTimeoutsRef;
+      let newDelayedImagesMap = { ...delayedImagesMap.current };
+      delete newDelayedImagesMap[tokenId];
+      delayedImagesMap.current = newDelayedImagesMap;
 
       forceUpdate();
     };
-    //
     await sleep(30000, signal);
+
     // If image is not loading, remove the timeout (so it can be created again)
     if (!img.complete || !img.naturalWidth) {
-      // window.stop();
       img.src = "";
-      let newTimeoutsRef = { ...timeoutsRef.current };
-      delete newTimeoutsRef[tokenId];
-      timeoutsRef.current = newTimeoutsRef;
+      let newDelayedImagesMap = { ...delayedImagesMap.current };
+      delete newDelayedImagesMap[tokenId];
+      delayedImagesMap.current = newDelayedImagesMap;
     }
   };
 
@@ -344,19 +385,23 @@ const Gallery: React.FC<RouteComponentProps> = () => {
       if (
         dataByContract[activeContractAddress][tokenId] &&
         dataByContract[activeContractAddress][tokenId].json &&
-        finishedRef.current.includes(tokenId) &&
-        !timeoutsRef.current[tokenId] &&
-        !loadedRef.current[tokenId]
+        delayFinishedTokens.current.includes(tokenId) &&
+        !delayedImagesMap.current[tokenId] &&
+        !imagesLoadedMap.current[tokenId]
       ) {
         const controller = new AbortController();
         const signal = controller.signal;
 
-        const promise = delayCachedImage(tokenId, counterRef.current, signal);
-        timeoutsRef.current = {
-          ...timeoutsRef.current,
+        const promise = delayCachedImage(
+          tokenId,
+          imageDelayCounter.current,
+          signal
+        );
+        delayedImagesMap.current = {
+          ...delayedImagesMap.current,
           [tokenId]: { promise, controller }
         };
-        counterRef.current = counterRef.current + 500;
+        imageDelayCounter.current = imageDelayCounter.current + 500;
       }
     }
 
@@ -371,7 +416,7 @@ const Gallery: React.FC<RouteComponentProps> = () => {
             <Link
               key={`${tokenId}-${index}`}
               onClick={() => {
-                loadedRef.current[tokenId] && setTokenModal(tokenId);
+                imagesLoadedMap.current[tokenId] && setTokenModal(tokenId);
               }}
             >
               <Box position="relative" _hover={{ background: "blue" }}>
@@ -379,7 +424,7 @@ const Gallery: React.FC<RouteComponentProps> = () => {
                   height="200px"
                   width="200px"
                   bg="gray.900"
-                  opacity={loadedRef.current[tokenId] ? 0 : 1}
+                  opacity={imagesLoadedMap.current[tokenId] ? 0 : 1}
                   position="absolute"
                   top="0"
                   _hover={{ opacity: "0.9" }}
@@ -388,7 +433,7 @@ const Gallery: React.FC<RouteComponentProps> = () => {
                   direction="column"
                 >
                   <Text fontSize={40}>#{tokenId}</Text>
-                  {!loadedRef.current[tokenId] ? (
+                  {!imagesLoadedMap.current[tokenId] ? (
                     <Flex>
                       <Text ml={2} fontSize={10}>
                         LOADING...
@@ -404,14 +449,16 @@ const Gallery: React.FC<RouteComponentProps> = () => {
                   title={`${tokenId}`}
                   loading="lazy"
                   tokenId={tokenId}
-                  src={loadedRef.current[tokenId]}
+                  src={imagesLoadedMap.current[tokenId]}
                   metadata={
                     (dataByContract[activeContractAddress][tokenId] &&
                       dataByContract[activeContractAddress][tokenId].json) ??
                     undefined
                   }
-                  isFinishedDelay={finishedRef.current.includes(tokenId)}
-                  isLoadedImage={loadedRef.current[tokenId]}
+                  isFinishedDelay={delayFinishedTokens.current.includes(
+                    tokenId
+                  )}
+                  isLoadedImage={imagesLoadedMap.current[tokenId]}
                 />
               </Box>
             </Link>
@@ -428,7 +475,7 @@ const Gallery: React.FC<RouteComponentProps> = () => {
           {tokenModal !== null ? (
             <GalleryModal
               tokenId={tokenModal}
-              imgUrl={loadedRef.current[tokenModal]}
+              imgUrl={imagesLoadedMap.current[tokenModal]}
               onClose={() => {
                 setTokenModal(null);
               }}
@@ -473,11 +520,11 @@ const Gallery: React.FC<RouteComponentProps> = () => {
             <Text textAlign="center">
               {" "}
               {!wrongNetWork
-                ? `Loading data from the blockchain, please wait.. ${
+                ? `Loading data from the blockchain, please wait ${
                     totalSupply && missingUri !== totalSupply.toNumber()
-                      ? `[${missingUri} / ${
+                      ? `[ ${missingUri} / ${
                           totalSupply ? totalSupply.toNumber() : ""
-                        }]`
+                        } ]`
                       : ""
                   }`
                 : "Please connect to Ethereum Network"}
