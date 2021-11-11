@@ -2,41 +2,42 @@ import { Fragment, useEffect, useState, useRef, useCallback } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { FixedSizeList as List } from "react-window";
 import { ReactWindowScroller } from "react-window-scroller";
-import { init, setMetadataURI, setMetadataJSON } from "./redux/contractsSlice";
-import { RootState } from "./redux/store";
 import { RouteComponentProps } from "@reach/router";
 import { useEthers } from "@usedapp/core";
 import { Flex, Box, Text, Spinner, Link } from "@chakra-ui/react";
+import debounce from "debounce";
+
+import { init, setMetadataURI, setMetadataJSON } from "./redux/contractsSlice";
+import { RootState } from "./redux/store";
 
 import useTotalSupply from "./hooks/useTotalSupply";
 import useTokenURI from "./hooks/useTokenURI";
 import useTokenByIndex from "./hooks/useTokenByIndex";
 import usePrevious from "./hooks/usePrevious";
 import useForceUpdate from "./hooks/useForceUpdate";
-import debounce from "debounce";
 
 import { configChainId } from "./constants";
 
 import GalleryModal from "./GalleryModal";
 import DelayedImage from "./DelayedImage";
+
 import ipfsGatewayUrl from "./helpers/ipfsGatewayUrl";
 import sleep from "./helpers/sleep";
 
 const Gallery: React.FC<RouteComponentProps> = () => {
   // useDapp hooks
   const { chainId } = useEthers();
-  const forceUpdate = useForceUpdate();
 
   // redux
+  const dispatch = useDispatch();
+
   const dataByContract = useSelector(
     ({ contracts: { dataByContract } }: RootState) => dataByContract
   );
-
   const activeContractAddress = useSelector(
     ({ contracts: { activeContractAddress } }: RootState) =>
       activeContractAddress
   );
-
   const corsProxyUrl = useSelector(
     ({ options: { corsProxyUrl } }: RootState) => corsProxyUrl
   );
@@ -44,17 +45,51 @@ const Gallery: React.FC<RouteComponentProps> = () => {
     ({ options: { ipfsGateway } }: RootState) => ipfsGateway
   );
 
-  const dispatch = useDispatch();
+  // calculated
+  const forceUpdate = useForceUpdate();
+  const containerWidth = window.innerWidth * 0.9;
+  const wrongNetWork = chainId !== configChainId;
+  const missingUri = dataByContract[activeContractAddress]
+    ? Object.values(dataByContract[activeContractAddress]).filter(
+        ({ uri }: any) => !uri
+      ).length
+    : null;
 
-  // chakra hooks
-  // const toast = useToast();
+  // references
+  const finishedRef: any = useRef([]);
+  const pendingUriTokensRef = useRef<number[]>([]);
+  // Array of tokens that have downloaded JSON Metadata
+  const fetchedRef: any = useRef(
+    dataByContract[activeContractAddress]
+      ? Object.keys(dataByContract[activeContractAddress])
+          .filter(key => dataByContract[activeContractAddress][key].json)
+          .map(e => parseInt(e))
+      : []
+  );
+  const [tokenModal, setTokenModal] = useState<number | null>(null);
+  // Map of the active timeoutes
+  const timeoutsRef: any = useRef({});
+  // Map of the counter used for timeouts
+  const counterRef: any = useRef(0);
+  // Map of the tokens already loaded
+  const loadedRef: any = useRef({});
+  const loadedUris =
+    dataByContract &&
+    dataByContract[activeContractAddress] &&
+    Object.values(dataByContract[activeContractAddress]).every(
+      (e: any) => e.uri
+    );
 
   // contract hooks
   const totalSupply = useTotalSupply(activeContractAddress);
   const [tokensByIndex] = useTokenByIndex(activeContractAddress, [0]);
-  const initialValue = tokensByIndex ? tokensByIndex[0] : null;
+  const tokenURIs = useTokenURI(
+    activeContractAddress,
+    pendingUriTokensRef.current
+  );
 
   // Effect to initialize store with the contract token skeleton data
+  const initialValue = tokensByIndex ? tokensByIndex[0] : null;
   useEffect(() => {
     if (initialValue && totalSupply && !dataByContract[activeContractAddress]) {
       dispatch(
@@ -72,12 +107,6 @@ const Gallery: React.FC<RouteComponentProps> = () => {
     activeContractAddress,
     initialValue
   ]);
-
-  const pendingUriTokensRef = useRef<number[]>([]);
-  const tokenURIs = useTokenURI(
-    activeContractAddress,
-    pendingUriTokensRef.current
-  );
 
   // Effect that activates after totalSupply is obtained, and store has been initialized
   // Finds the next tokens that have not yet get any uri
@@ -133,20 +162,70 @@ const Gallery: React.FC<RouteComponentProps> = () => {
     tokenURIs
   ]);
 
-  const containerWidth = window.innerWidth * 0.9;
-  const wrongNetWork = chainId !== configChainId;
-  const finishedRef: any = useRef([]);
-  // const [useCorsProxy] = useState<boolean>(true);
-  const [tokenModal, setTokenModal] = useState<number | null>(null);
+  // TODO: Make this cancelable
+  const fetchViewportJSON = debounce(async () => {
+    counterRef.current = 0;
+    let sleepCounter = 1;
 
-  // Array of tokens that have downloaded JSON Metadata
-  const fetchedRef: any = useRef(
-    dataByContract[activeContractAddress]
-      ? Object.keys(dataByContract[activeContractAddress])
-          .filter(key => dataByContract[activeContractAddress][key].json)
-          .map(e => parseInt(e))
-      : []
-  );
+    Object.values(timeoutsRef.current).forEach((e: any) => {
+      if (e && e.controller) {
+        e.controller.abort();
+      }
+    });
+
+    timeoutsRef.current = {};
+    for (
+      let index = cellRendererListRef.current.includes(1)
+        ? 0
+        : Math.floor(cellRendererListRef.current.length / 3);
+      index < cellRendererListRef.current.length;
+      index++
+    ) {
+      if (!fetchedRef.current.includes(cellRendererListRef.current[index])) {
+        await sleep(sleepCounter * 500);
+        // It checks again if not exists on fetchedRef, because maybe it changed
+        if (!fetchedRef.current.includes(cellRendererListRef.current[index])) {
+          fetchTokenJSON(cellRendererListRef.current[index]);
+        }
+        sleepCounter++;
+      }
+    }
+  }, 2000);
+
+  // Effect to load when a different contract address is used
+  const prevLoadedUris = usePrevious(loadedUris);
+  const prevActiveContractAddress = usePrevious(activeContractAddress);
+  useEffect(() => {
+    if (prevActiveContractAddress !== activeContractAddress) {
+      Object.values(timeoutsRef.current).forEach((e: any) => {
+        if (e && e.controller) {
+          e.controller.abort();
+        }
+      });
+      setTimeout(() => {
+        timeoutsRef.current = {};
+        loadedRef.current = {};
+        counterRef.current = 0;
+        pendingUriTokensRef.current = [];
+      }, 100);
+    }
+  }, [activeContractAddress, prevActiveContractAddress, fetchViewportJSON]);
+
+  // Event that is triggered after a scroll is made on the page
+  useEffect(() => {
+    window.addEventListener("scroll", fetchViewportJSON);
+    return () => {
+      window.removeEventListener("scroll", fetchViewportJSON);
+    };
+  }, [activeContractAddress, dataByContract, fetchViewportJSON]);
+
+  // Effect when first loaded all the images (after fetching all URIS)
+  useEffect(() => {
+    if (prevLoadedUris === false && loadedUris === true) {
+      fetchViewportJSON();
+      fetchedRef.current = [];
+    }
+  }, [loadedUris, prevLoadedUris, fetchViewportJSON]);
 
   // Callback for obraining the JSON Metadata
   const fetchTokenJSON = useCallback(
@@ -195,52 +274,6 @@ const Gallery: React.FC<RouteComponentProps> = () => {
     [dataByContract, activeContractAddress, dispatch, corsProxyUrl, ipfsGateway]
   );
 
-  // TODO: Make this cancelable
-  const fetchViewportJSON = debounce(async () => {
-    counterRef.current = 0;
-    let sleepCounter = 1;
-
-    Object.values(timeoutsRef.current).forEach((e: any) => {
-      if (e && e.controller) {
-        e.controller.abort();
-      }
-    });
-
-    timeoutsRef.current = {};
-    for (
-      let index = cellRendererListRef.current.includes(1)
-        ? 0
-        : Math.floor(cellRendererListRef.current.length / 3);
-      index < cellRendererListRef.current.length;
-      index++
-    ) {
-      if (!fetchedRef.current.includes(cellRendererListRef.current[index])) {
-        await sleep(sleepCounter * 500);
-        // It checks again if not exists on fetchedRef, because maybe it changed
-        if (!fetchedRef.current.includes(cellRendererListRef.current[index])) {
-          fetchTokenJSON(cellRendererListRef.current[index]);
-        }
-        sleepCounter++;
-      }
-    }
-  }, 2000);
-
-  // Event that is triggered after a scroll is made on the page
-  useEffect(() => {
-    window.addEventListener("scroll", fetchViewportJSON);
-    return () => {
-      window.removeEventListener("scroll", fetchViewportJSON);
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeContractAddress, dataByContract]);
-
-  // List of Tokens rendered
-  let cellRendererList: number[] = [];
-
-  // Reference of the cell values rendered
-  const cellRendererListRef = useRef(cellRendererList);
-  cellRendererListRef.current = cellRendererList;
-
   // Callback called when the image delay is finished
   let toggle = true;
   const addFinishedDelay = () => {
@@ -250,47 +283,6 @@ const Gallery: React.FC<RouteComponentProps> = () => {
       forceUpdate();
     }
   };
-
-  const loadedUris =
-    dataByContract &&
-    dataByContract[activeContractAddress] &&
-    Object.values(dataByContract[activeContractAddress]).every(
-      (e: any) => e.uri
-    );
-
-  const prevLoadedUris = usePrevious(loadedUris);
-  const prevActiveContractAddress = usePrevious(activeContractAddress);
-  useEffect(() => {
-    if (prevActiveContractAddress !== activeContractAddress) {
-      Object.values(timeoutsRef.current).forEach((e: any) => {
-        if (e && e.controller) {
-          e.controller.abort();
-        }
-      });
-      setTimeout(() => {
-        timeoutsRef.current = {};
-        loadedRef.current = {};
-        counterRef.current = 0;
-        pendingUriTokensRef.current = [];
-      }, 100);
-    }
-  }, [activeContractAddress, prevActiveContractAddress, fetchViewportJSON]);
-
-  useEffect(() => {
-    if (prevLoadedUris === false && loadedUris === true) {
-      fetchViewportJSON();
-      fetchedRef.current = [];
-    }
-  }, [loadedUris, prevLoadedUris, fetchViewportJSON]);
-
-  // Map of the active timeoutes
-  const timeoutsRef: any = useRef({});
-
-  // Map of the counter used for timeouts
-  const counterRef: any = useRef(0);
-
-  // Map of the tokens already loaded
-  const loadedRef: any = useRef({});
 
   // Function that receives the token ID, and an sleep time
   // it will generate the image after sleep is finished
@@ -332,13 +324,10 @@ const Gallery: React.FC<RouteComponentProps> = () => {
     }
   };
 
-  const missingUri = dataByContract[activeContractAddress]
-    ? Object.values(dataByContract[activeContractAddress]).filter(
-        ({ uri }: any) => !uri
-      ).length
-    : null;
-
   // Function called for render the dinaymic table
+  let cellRendererList: number[] = [];
+  const cellRendererListRef = useRef(cellRendererList);
+  cellRendererListRef.current = cellRendererList;
   const cellRenderer = ({ index, style, ref }: any) => {
     const times = Math.floor(containerWidth / 200);
     const start = index * times;
@@ -351,7 +340,6 @@ const Gallery: React.FC<RouteComponentProps> = () => {
       );
       if (!cellRendererList.includes(tokenId)) {
         cellRendererList.push(tokenId);
-        // forceUpdate();
       }
       if (
         dataByContract[activeContractAddress][tokenId] &&
