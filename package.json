@@ -1,5 +1,6 @@
 {
   "name": "nft-exlplorer",
+  "homepage": "https://ivanm.github.io/nft-explorer",
   "version": "1.0",
   "private": false,
   "dependencies": {
@@ -43,7 +44,8 @@
     "build": "react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject",
-    "serve-build": "serve -s build"
+    "serve-build": "serve -s build",
+    "deploy": "gh-pages -d build"
   },
   "eslintConfig": {
     "extends": [
