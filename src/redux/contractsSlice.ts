@@ -1,4 +1,5 @@
 import { createSlice } from "@reduxjs/toolkit";
+import presets from "../presets";
 
 interface ContractState {
   activeContractAddress: string;
@@ -7,7 +8,10 @@ interface ContractState {
 
 const initialState: ContractState = {
   dataByContract: {},
-  activeContractAddress: "0xBd3531dA5CF5857e7CfAA92426877b022e612cf8"
+  // Start with a random address from presets
+  activeContractAddress: Object.values(presets)[
+    Math.floor(Math.random() * Object.values(presets).length)
+  ].address
 };
 
 export const contractsSlice = createSlice({

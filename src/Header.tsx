@@ -8,7 +8,8 @@ import {
   Heading,
   Select,
   FormControl,
-  FormLabel
+  FormLabel,
+  Link
 } from "@chakra-ui/react";
 
 import { RootState } from "./redux/store";
@@ -56,6 +57,8 @@ const Header = () => {
     string | null
   >(corsProxyUrl == null ? "" : corsProxyUrl);
 
+  let presetsSorted = presets;
+  presetsSorted.sort((a, b) => a.name.localeCompare(b.name));
   return (
     <Box
       id="header"
@@ -66,14 +69,28 @@ const Header = () => {
       p={0}
       alignItems="center"
     >
-      <Flex borderRadius="20px" bg="gray.600" p={4} m={5} justify="center">
+      <Flex
+        borderRadius="20px"
+        bg="gray.600"
+        p={4}
+        m={5}
+        justify="center"
+        maxWidth="827px"
+      >
         <Flex direction="column">
           <Heading textAlign="center" as="h1">
             NFT Explorer
           </Heading>
-          <Box textAlign="center"pt={2} pb={2}>
-            Enter any Contract Address of an NFT Collection or select any of the
-            available presets
+          <Box textAlign="center" pt={5} pb={5} pl={5} pr={5}>
+            Use an<b> Ethereum ERC721</b> Contract Address with the
+            <b>
+              {" "}
+              <Link href="https://eips.ethereum.org/EIPS/eip-721">
+                ERC721Enumerable
+              </Link>
+            </b>{" "}
+            Extension, or select one of the available Collection presets. Data
+            will be dynamically fetched as you scroll.
           </Box>
           <Flex
             justify="space-around"
@@ -92,7 +109,7 @@ const Header = () => {
               }}
               value={preset}
             >
-              {presets.map(({ name, address }) => (
+              {presetsSorted.map(({ name, address }) => (
                 <option key={address} value={address}>
                   {name}
                 </option>
@@ -104,7 +121,7 @@ const Header = () => {
             <Input
               mt={{ base: 2, md: 0 }}
               ml="5px"
-              width={{ base: "100%", md: "420px" }}
+              width={{ base: "100%", md: "445px" }}
               placeholder="Address"
               value={formContractAddress}
               onChange={({ target: { value } }) => {

@@ -193,23 +193,22 @@ const Gallery: React.FC<RouteComponentProps> = () => {
   ]);
 
   const refreshViewport = debounce(async () => {
-    imageDelayCounter.current = 0;
-    jsonDelayCounter.current = 0;
-
-    Object.values(delayedImagesMap.current).forEach((e: any) => {
-      if (e && e.controller) {
-        e.controller.abort();
-      }
-    });
-    delayedImagesMap.current = {};
-
-    Object.values(delayedJsonMap.current).forEach((e: any) => {
-      if (e && e.controller) {
-        e.controller.abort();
-      }
-    });
-    delayedJsonMap.current = {};
-  }, 2000);
+    // imageDelayCounter.current = 0;
+    // jsonDelayCounter.current = 0;
+    // Object.values(delayedImagesMap.current).forEach((e: any) => {
+    //   if (e && e.controller) {
+    //     e.controller.abort();
+    //   }
+    // });
+    // delayedImagesMap.current = {};
+    //
+    // Object.values(delayedJsonMap.current).forEach((e: any) => {
+    //   if (e && e.controller) {
+    //     e.controller.abort();
+    //   }
+    // });
+    // delayedJsonMap.current = {};
+  }, 500);
 
   // Effect to load when a different contract address is detected
   const prevActiveContractAddress = usePrevious(activeContractAddress);
@@ -228,8 +227,8 @@ const Gallery: React.FC<RouteComponentProps> = () => {
       delayedImagesMap.current = {};
       delayedJsonMap.current = {};
       imagesLoadedMap.current = {};
-      // imageDelayCounter.current = 0;
-      // jsonDelayCounter.current = 0;
+      imageDelayCounter.current = 0;
+      jsonDelayCounter.current = 0;
       pendingUriTokens.current = [];
       downloadedMetadataTokens.current = [];
     }
@@ -252,9 +251,66 @@ const Gallery: React.FC<RouteComponentProps> = () => {
     }
   }, [loadedUris, prevLoadedUris, refreshViewport]);
 
+  // Function that receives the token ID and an sleep time
+  // it will generate the image after sleep is finished
+  const delayCachedImage = useCallback(
+    async (tokenId: number, sleepTime: number, signal: any) => {
+      await sleep(sleepTime, signal);
+
+      let img: any = null;
+      img = new window.Image();
+
+      if (
+        !dataByContract[activeContractAddress][tokenId].json ||
+        !dataByContract[activeContractAddress][tokenId].json.image
+      ) {
+        console.log("ohno");
+        console.log(signal);
+        return;
+      }
+
+      let imgUrl = dataByContract[activeContractAddress][tokenId].json.image;
+      if (imgUrl.startsWith("ipfs:")) {
+        imgUrl = ipfsGatewayUrl(imgUrl, ipfsGateway);
+      }
+
+      img.src = imgUrl;
+      img.onload = () => {
+        if (!signal.aborted) {
+          imagesLoadedMap.current = {
+            ...imagesLoadedMap.current,
+            [tokenId]: img.src
+          };
+
+          let newDelayedImagesMap = { ...delayedImagesMap.current };
+          delete newDelayedImagesMap[tokenId];
+          delayedImagesMap.current = newDelayedImagesMap;
+
+          forceUpdate();
+        }
+      };
+      await sleep(20000, signal);
+
+      // If image is not loading, retry
+      if (!img.complete || !img.naturalWidth) {
+        img.src = "";
+
+        const controller = new AbortController();
+        const signal = controller.signal;
+
+        const promise = delayCachedImage(tokenId, 0, signal);
+
+        let newDelayedImagesMap = { ...delayedImagesMap.current };
+        newDelayedImagesMap[tokenId] = { promise, controller };
+        delayedImagesMap.current = newDelayedImagesMap;
+      }
+    },
+    [activeContractAddress, dataByContract, forceUpdate, ipfsGateway]
+  );
+
   // Callback for obtaining the JSON Metadata
   const fetchTokenJSON = useCallback(
-    async (tokenId: number) => {
+    async (tokenId: number, signal: any) => {
       if (
         !dataByContract[activeContractAddress] ||
         !dataByContract[activeContractAddress][tokenId]
@@ -270,7 +326,7 @@ const Gallery: React.FC<RouteComponentProps> = () => {
           uri = corsProxyUrl + uri;
         }
 
-        const response = await fetch(uri);
+        const response = await fetch(uri, { signal });
         const data = await response.text();
 
         dispatch(
@@ -279,16 +335,34 @@ const Gallery: React.FC<RouteComponentProps> = () => {
             tokens: [{ tokenId, json: JSON.parse(data) }]
           })
         );
+        console.log("dispatced?");
+        console.log(dataByContract[activeContractAddress][tokenId]);
         downloadedMetadataTokens.current = [
           ...downloadedMetadataTokens.current,
           tokenId
         ];
+
+        const controller = new AbortController();
+
+        const promise = delayCachedImage(tokenId, 5000, signal);
+        delayedImagesMap.current = {
+          ...delayedImagesMap.current,
+          [tokenId]: { promise, controller }
+        };
+
         return data;
       } catch (error) {
         console.log(error);
       }
     },
-    [dataByContract, activeContractAddress, dispatch, corsProxyUrl, ipfsGateway]
+    [
+      dataByContract,
+      activeContractAddress,
+      dispatch,
+      corsProxyUrl,
+      ipfsGateway,
+      delayCachedImage
+    ]
   );
 
   // Callback called when the image delay is finished
@@ -300,88 +374,34 @@ const Gallery: React.FC<RouteComponentProps> = () => {
       forceUpdate();
     }
   };
-
-  // Updates the state  with the window values
-  const resize = () => {
-    if (window.innerWidth < 500) {
-      setItemSize(120);
-    } else {
-      setItemSize(200);
-    }
-    setWindowSize({
-      height: window.innerHeight,
-      width: window.innerWidth
-    });
-  };
-
-  // Function that receives the token ID and an sleep time
-  // it will generate the image after sleep is finished
-  const delayCachedImage = async (
-    tokenId: number,
-    sleepTime: number,
-    signal: any
-  ) => {
-    await sleep(sleepTime, signal);
-
-    let img: any = null;
-    img = new window.Image();
-
-    let imgUrl = dataByContract[activeContractAddress][tokenId].json.image;
-    if (imgUrl.startsWith("ipfs:")) {
-      imgUrl = ipfsGatewayUrl(imgUrl, ipfsGateway);
-    }
-
-    img.src = imgUrl;
-    img.onload = () => {
-      if (!signal.aborted) {
-        imagesLoadedMap.current = {
-          ...imagesLoadedMap.current,
-          [tokenId]: img.src
-        };
-
-        let newDelayedImagesMap = { ...delayedImagesMap.current };
-        delete newDelayedImagesMap[tokenId];
-        delayedImagesMap.current = newDelayedImagesMap;
-
-        forceUpdate();
-      }
-    };
-    await sleep(20000, signal);
-
-    // If image is not loading, retry
-    if (!img.complete || !img.naturalWidth) {
-      img.src = "";
-
-      const controller = new AbortController();
-      const signal = controller.signal;
-
-      const promise = delayCachedImage(tokenId, 0, signal);
-
-      let newDelayedImagesMap = { ...delayedImagesMap.current };
-      newDelayedImagesMap[tokenId] = { promise, controller };
-      delayedImagesMap.current = newDelayedImagesMap;
-    }
-  };
-
-  const delayJson = async (tokenId: number, sleepTime: number, signal: any) => {
-    await sleep(sleepTime, signal);
-    fetchTokenJSON(tokenId);
-  };
-
-  // Function called for render the dinaymic table
-  let cellRendererList: number[] = [];
-  const cellRendererListRef = useRef(cellRendererList);
-  cellRendererListRef.current = cellRendererList;
-  const cellRenderer = ({ index, style, ref }: any) => {
+  const onItemsRendered = ({
+    overscanStartIndex,
+    overscanStopIndex,
+    visibleStartIndex,
+    visibleStopIndex
+  }: any) => {
     const times = Math.floor(containerWidth / itemSize);
-    const start = index * times;
-    const cells = new Array(times)
-      .fill({})
-      .filter((_, index) => start + index < totalSupply.toNumber());
-    for (let i = 0; i < cells.length; i++) {
+    // console.log(overscanStartIndex * times, "overscanStartIndex");
+    // console.log(overscanStopIndex * times, "overscanStopIndex");
+    console.log(visibleStartIndex * times, "visibleStartIndex");
+    console.log(visibleStopIndex * times, "visibleStopIndex");
+    // TODO Move this to state/ref Variables
+    // Add an effect, when dataByContract[activeContractAddress] contains tokens that
+    // change their json.image from emtpy to a value
+    // use this tokens to call delayCachedImage instead of the 
+    // await call on fetchTokenJSON
+    const visibleFirstToken = visibleStartIndex * times;
+    let visibleLastToken = visibleStopIndex * times + times;
+    if (visibleLastToken > totalSupply.toNumber()) {
+      visibleLastToken = totalSupply.toNumber();
+    }
+    jsonDelayCounter.current = 0;
+
+    for (let i = visibleFirstToken; i <= visibleLastToken; i++) {
       const tokenId = parseInt(
-        Object.keys(dataByContract[activeContractAddress])[start + i]
+        Object.keys(dataByContract[activeContractAddress])[i]
       );
+      console.log("entering " + tokenId);
 
       if (!cellRendererList.includes(tokenId)) {
         cellRendererList.push(tokenId);
@@ -393,6 +413,7 @@ const Gallery: React.FC<RouteComponentProps> = () => {
           : true) &&
         !delayedJsonMap.current[tokenId]
       ) {
+        console.log("entering json control");
         const controller = new AbortController();
         const signal = controller.signal;
 
@@ -401,6 +422,8 @@ const Gallery: React.FC<RouteComponentProps> = () => {
           ...delayedJsonMap.current,
           [tokenId]: { promise, controller }
         };
+        console.log(delayedJsonMap.current);
+        console.log(jsonDelayCounter.current);
         jsonDelayCounter.current = jsonDelayCounter.current + 250;
       }
 
@@ -426,6 +449,85 @@ const Gallery: React.FC<RouteComponentProps> = () => {
         };
         imageDelayCounter.current = imageDelayCounter.current + 500;
       }
+    }
+  };
+
+  // Updates the state  with the window values
+  const resize = () => {
+    if (window.innerWidth < 500) {
+      setItemSize(120);
+    } else {
+      setItemSize(200);
+    }
+    setWindowSize({
+      height: window.innerHeight,
+      width: window.innerWidth
+    });
+  };
+
+  const delayJson = async (tokenId: number, sleepTime: number, signal: any) => {
+    await sleep(sleepTime, signal);
+    fetchTokenJSON(tokenId, signal);
+  };
+
+  // Function called for render the dinaymic table
+  let cellRendererList: number[] = [];
+  const cellRendererListRef = useRef(cellRendererList);
+  cellRendererListRef.current = cellRendererList;
+  const cellRenderer = ({ index, style, ref }: any) => {
+    const times = Math.floor(containerWidth / itemSize);
+    const start = index * times;
+    const cells = new Array(times)
+      .fill({})
+      .filter((_, index) => start + index < totalSupply.toNumber());
+    for (let i = 0; i < cells.length; i++) {
+      const tokenId = parseInt(
+        Object.keys(dataByContract[activeContractAddress])[start + i]
+      );
+
+      if (!cellRendererList.includes(tokenId)) {
+        cellRendererList.push(tokenId);
+      }
+      // if (
+      //   dataByContract[activeContractAddress][tokenId] &&
+      //   (dataByContract[activeContractAddress][tokenId].json
+      //     ? !dataByContract[activeContractAddress][tokenId].json.image
+      //     : true) &&
+      //   !delayedJsonMap.current[tokenId]
+      // ) {
+      //   const controller = new AbortController();
+      //   const signal = controller.signal;
+      //
+      //   const promise = delayJson(tokenId, jsonDelayCounter.current, signal);
+      //   delayedJsonMap.current = {
+      //     ...delayedJsonMap.current,
+      //     [tokenId]: { promise, controller }
+      //   };
+      //   jsonDelayCounter.current = jsonDelayCounter.current + 250;
+      // }
+      //
+      // if (
+      //   dataByContract[activeContractAddress][tokenId] &&
+      //   dataByContract[activeContractAddress][tokenId].json &&
+      //   dataByContract[activeContractAddress][tokenId].json.image &&
+      //   delayFinishedTokens.current.includes(tokenId) &&
+      //   !delayedImagesMap.current[tokenId] &&
+      //   !imagesLoadedMap.current[tokenId]
+      // ) {
+      //   const controller = new AbortController();
+      //   const signal = controller.signal;
+      //
+      //   const promise = delayCachedImage(
+      //     tokenId,
+      //     imageDelayCounter.current,
+      //     signal
+      //   );
+      //   delayedImagesMap.current = {
+      //     ...delayedImagesMap.current,
+      //     [tokenId]: { promise, controller }
+      //   };
+      //   imageDelayCounter.current = imageDelayCounter.current + 500;
+      // }
     }
 
     return (
@@ -526,6 +628,7 @@ const Gallery: React.FC<RouteComponentProps> = () => {
                       itemSize={itemSize}
                       width={window.innerWidth}
                       onScroll={onScroll}
+                      onItemsRendered={debounce(onItemsRendered, 2000)}
                     >
                       {cellRenderer}
                     </List>
@@ -544,14 +647,15 @@ const Gallery: React.FC<RouteComponentProps> = () => {
             <Text textAlign="center">
               {" "}
               {!wrongNetWork
-                ? `Loading data from the blockchain, please wait ${
-                    totalSupply && missingUri !== totalSupply.toNumber()
-                      ? `[ ${missingUri} / ${
-                          totalSupply ? totalSupply.toNumber() : ""
-                        } ]`
-                      : ""
-                  }`
+                ? `Loading data from the blockchain, please wait`
                 : "Please connect to Ethereum Network"}
+            </Text>
+            <Text textAlign="center">
+              {totalSupply && missingUri && missingUri < totalSupply.toNumber()
+                ? `[ ${missingUri.toLocaleString()} / ${
+                    totalSupply ? totalSupply.toNumber().toLocaleString() : ""
+                  } ]`
+                : ""}
             </Text>
           </Box>
         </Flex>
