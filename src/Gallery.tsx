@@ -261,14 +261,15 @@ const Gallery = ({ listRef }) => {
       if (!img.complete || !img.naturalWidth) {
         img.src = "";
 
-        const controller = new AbortController();
-        const signal = controller.signal;
+        if (!signal.aborted) {
+          const controller = new AbortController();
 
-        const promise = delayCachedImage(tokenId, 0, signal, imgUrl);
+          const promise = delayCachedImage(tokenId, 0, signal, imgUrl);
 
-        let newDelayedImagesMap = { ...delayedImagesMap.current };
-        newDelayedImagesMap[tokenId] = { promise, controller };
-        delayedImagesMap.current = newDelayedImagesMap;
+          let newDelayedImagesMap = { ...delayedImagesMap.current };
+          newDelayedImagesMap[tokenId] = { promise, controller };
+          delayedImagesMap.current = newDelayedImagesMap;
+        }
       }
     },
     [activeContractAddress, dataByContract, forceUpdate, ipfsGateway]
