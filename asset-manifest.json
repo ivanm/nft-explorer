@@ -1,8 +1,8 @@
 {
   "files": {
     "main.css": "/nft-explorer/static/css/main.8c8b27cf.chunk.css",
-    "main.js": "/nft-explorer/static/js/main.3bee3490.chunk.js",
-    "main.js.map": "/nft-explorer/static/js/main.3bee3490.chunk.js.map",
+    "main.js": "/nft-explorer/static/js/main.d5751b3f.chunk.js",
+    "main.js.map": "/nft-explorer/static/js/main.d5751b3f.chunk.js.map",
     "runtime-main.js": "/nft-explorer/static/js/runtime-main.b899b613.js",
     "runtime-main.js.map": "/nft-explorer/static/js/runtime-main.b899b613.js.map",
     "static/js/2.2785e966.chunk.js": "/nft-explorer/static/js/2.2785e966.chunk.js",
@@ -15,6 +15,6 @@
     "static/js/runtime-main.b899b613.js",
     "static/js/2.2785e966.chunk.js",
     "static/css/main.8c8b27cf.chunk.css",
-    "static/js/main.3bee3490.chunk.js"
+    "static/js/main.d5751b3f.chunk.js"
   ]
 }
