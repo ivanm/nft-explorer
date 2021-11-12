@@ -1,20 +1,20 @@
 {
   "files": {
     "main.css": "/nft-explorer/static/css/main.8c8b27cf.chunk.css",
-    "main.js": "/nft-explorer/static/js/main.8ab5af42.chunk.js",
-    "main.js.map": "/nft-explorer/static/js/main.8ab5af42.chunk.js.map",
+    "main.js": "/nft-explorer/static/js/main.3bee3490.chunk.js",
+    "main.js.map": "/nft-explorer/static/js/main.3bee3490.chunk.js.map",
     "runtime-main.js": "/nft-explorer/static/js/runtime-main.b899b613.js",
     "runtime-main.js.map": "/nft-explorer/static/js/runtime-main.b899b613.js.map",
-    "static/js/2.826a63f5.chunk.js": "/nft-explorer/static/js/2.826a63f5.chunk.js",
-    "static/js/2.826a63f5.chunk.js.map": "/nft-explorer/static/js/2.826a63f5.chunk.js.map",
+    "static/js/2.2785e966.chunk.js": "/nft-explorer/static/js/2.2785e966.chunk.js",
+    "static/js/2.2785e966.chunk.js.map": "/nft-explorer/static/js/2.2785e966.chunk.js.map",
     "index.html": "/nft-explorer/index.html",
     "static/css/main.8c8b27cf.chunk.css.map": "/nft-explorer/static/css/main.8c8b27cf.chunk.css.map",
-    "static/js/2.826a63f5.chunk.js.LICENSE.txt": "/nft-explorer/static/js/2.826a63f5.chunk.js.LICENSE.txt"
+    "static/js/2.2785e966.chunk.js.LICENSE.txt": "/nft-explorer/static/js/2.2785e966.chunk.js.LICENSE.txt"
   },
   "entrypoints": [
     "static/js/runtime-main.b899b613.js",
-    "static/js/2.826a63f5.chunk.js",
+    "static/js/2.2785e966.chunk.js",
     "static/css/main.8c8b27cf.chunk.css",
-    "static/js/main.8ab5af42.chunk.js"
+    "static/js/main.3bee3490.chunk.js"
   ]
 }
