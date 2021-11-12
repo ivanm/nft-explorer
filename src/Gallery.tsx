@@ -254,22 +254,19 @@ const Gallery: React.FC<RouteComponentProps> = () => {
   // Function that receives the token ID and an sleep time
   // it will generate the image after sleep is finished
   const delayCachedImage = useCallback(
-    async (tokenId: number, sleepTime: number, signal: any) => {
+    async (
+      tokenId: number,
+      sleepTime: number,
+      signal: any,
+      imgSrc?: string
+    ) => {
       await sleep(sleepTime, signal);
 
       let img: any = null;
       img = new window.Image();
 
-      if (
-        !dataByContract[activeContractAddress][tokenId].json ||
-        !dataByContract[activeContractAddress][tokenId].json.image
-      ) {
-        console.log("ohno");
-        console.log(signal);
-        return;
-      }
-
-      let imgUrl = dataByContract[activeContractAddress][tokenId].json.image;
+      let imgUrl =
+        imgSrc ?? dataByContract[activeContractAddress][tokenId].json.image;
       if (imgUrl.startsWith("ipfs:")) {
         imgUrl = ipfsGatewayUrl(imgUrl, ipfsGateway);
       }
@@ -289,7 +286,7 @@ const Gallery: React.FC<RouteComponentProps> = () => {
           forceUpdate();
         }
       };
-      await sleep(20000, signal);
+      await sleep(10000, signal);
 
       // If image is not loading, retry
       if (!img.complete || !img.naturalWidth) {
@@ -298,7 +295,7 @@ const Gallery: React.FC<RouteComponentProps> = () => {
         const controller = new AbortController();
         const signal = controller.signal;
 
-        const promise = delayCachedImage(tokenId, 0, signal);
+        const promise = delayCachedImage(tokenId, 0, signal, imgUrl);
 
         let newDelayedImagesMap = { ...delayedImagesMap.current };
         newDelayedImagesMap[tokenId] = { promise, controller };
@@ -335,8 +332,6 @@ const Gallery: React.FC<RouteComponentProps> = () => {
             tokens: [{ tokenId, json: JSON.parse(data) }]
           })
         );
-        console.log("dispatced?");
-        console.log(dataByContract[activeContractAddress][tokenId]);
         downloadedMetadataTokens.current = [
           ...downloadedMetadataTokens.current,
           tokenId
@@ -344,12 +339,18 @@ const Gallery: React.FC<RouteComponentProps> = () => {
 
         const controller = new AbortController();
 
-        const promise = delayCachedImage(tokenId, 5000, signal);
+        const promise = delayCachedImage(
+          tokenId,
+          imageDelayCounter,
+          signal,
+          JSON.parse(data).image
+        );
         delayedImagesMap.current = {
           ...delayedImagesMap.current,
           [tokenId]: { promise, controller }
         };
 
+        imageDelayCounter.current = imageDelayCounter.current + 500;
         return data;
       } catch (error) {
         console.log(error);
@@ -380,15 +381,28 @@ const Gallery: React.FC<RouteComponentProps> = () => {
     visibleStartIndex,
     visibleStopIndex
   }: any) => {
+
+
+    Object.values(delayedImagesMap.current).forEach((e: any) => {
+      if (e && e.controller) {
+        e.controller.abort();
+      }
+    });
+    delayedImagesMap.current = {};
+
+    Object.values(delayedJsonMap.current).forEach((e: any) => {
+      if (e && e.controller) {
+        e.controller.abort();
+      }
+    });
+
+    delayedJsonMap.current = {};
+
     const times = Math.floor(containerWidth / itemSize);
-    // console.log(overscanStartIndex * times, "overscanStartIndex");
-    // console.log(overscanStopIndex * times, "overscanStopIndex");
-    console.log(visibleStartIndex * times, "visibleStartIndex");
-    console.log(visibleStopIndex * times, "visibleStopIndex");
     // TODO Move this to state/ref Variables
     // Add an effect, when dataByContract[activeContractAddress] contains tokens that
     // change their json.image from emtpy to a value
-    // use this tokens to call delayCachedImage instead of the 
+    // use this tokens to call delayCachedImage instead of the
     // await call on fetchTokenJSON
     const visibleFirstToken = visibleStartIndex * times;
     let visibleLastToken = visibleStopIndex * times + times;
@@ -396,12 +410,12 @@ const Gallery: React.FC<RouteComponentProps> = () => {
       visibleLastToken = totalSupply.toNumber();
     }
     jsonDelayCounter.current = 0;
+    imageDelayCounter.current = 0;
 
     for (let i = visibleFirstToken; i <= visibleLastToken; i++) {
       const tokenId = parseInt(
         Object.keys(dataByContract[activeContractAddress])[i]
       );
-      console.log("entering " + tokenId);
 
       if (!cellRendererList.includes(tokenId)) {
         cellRendererList.push(tokenId);
@@ -413,7 +427,6 @@ const Gallery: React.FC<RouteComponentProps> = () => {
           : true) &&
         !delayedJsonMap.current[tokenId]
       ) {
-        console.log("entering json control");
         const controller = new AbortController();
         const signal = controller.signal;
 
@@ -422,9 +435,7 @@ const Gallery: React.FC<RouteComponentProps> = () => {
           ...delayedJsonMap.current,
           [tokenId]: { promise, controller }
         };
-        console.log(delayedJsonMap.current);
-        console.log(jsonDelayCounter.current);
-        jsonDelayCounter.current = jsonDelayCounter.current + 250;
+        jsonDelayCounter.current = jsonDelayCounter.current + 300;
       }
 
       if (
@@ -447,7 +458,7 @@ const Gallery: React.FC<RouteComponentProps> = () => {
           ...delayedImagesMap.current,
           [tokenId]: { promise, controller }
         };
-        imageDelayCounter.current = imageDelayCounter.current + 500;
+        imageDelayCounter.current = imageDelayCounter.current + 700;
       }
     }
   };
