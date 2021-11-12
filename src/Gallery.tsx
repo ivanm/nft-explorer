@@ -350,7 +350,7 @@ const Gallery: React.FC<RouteComponentProps> = () => {
           [tokenId]: { promise, controller }
         };
 
-        imageDelayCounter.current = imageDelayCounter.current + 500;
+        imageDelayCounter.current = imageDelayCounter.current + 2000;
         return data;
       } catch (error) {
         console.log(error);
@@ -435,7 +435,7 @@ const Gallery: React.FC<RouteComponentProps> = () => {
           ...delayedJsonMap.current,
           [tokenId]: { promise, controller }
         };
-        jsonDelayCounter.current = jsonDelayCounter.current + 300;
+        jsonDelayCounter.current = jsonDelayCounter.current + 1000;
       }
 
       if (
@@ -458,7 +458,7 @@ const Gallery: React.FC<RouteComponentProps> = () => {
           ...delayedImagesMap.current,
           [tokenId]: { promise, controller }
         };
-        imageDelayCounter.current = imageDelayCounter.current + 700;
+        imageDelayCounter.current = imageDelayCounter.current + 2000;
       }
     }
   };
