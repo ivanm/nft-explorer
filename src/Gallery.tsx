@@ -77,7 +77,8 @@ const Gallery: React.FC<RouteComponentProps> = () => {
   // Array of tokens that finished delaying and ready to load
   const delayFinishedTokens: any = useRef([]);
   // Array of tokens that have not yet gotten a URI
-  const pendingUriTokens = useRef<number[]>([]);
+  // const pendingUriTokens = useRef<number[]>([]);
+  const [pendingUriTokens, setPendingUriTokens] = useState<number[]>([]);
   // Array of tokens that have downloaded JSON Metadata
   const downloadedMetadataTokens: any = useRef(
     dataByContract[activeContractAddress]
@@ -101,10 +102,8 @@ const Gallery: React.FC<RouteComponentProps> = () => {
   // Contract hooks
   const totalSupply = useTotalSupply(activeContractAddress);
   const [initialToken] = useTokenByIndex(activeContractAddress, [0]);
-  const tokenURIs = useTokenURI(
-    activeContractAddress,
-    pendingUriTokens.current
-  );
+  // console.log(pendingUriTokens.current);
+  const tokenURIs = useTokenURI(activeContractAddress, pendingUriTokens);
 
   // Effect to recalculate size
   useEffect(() => {
@@ -150,9 +149,19 @@ const Gallery: React.FC<RouteComponentProps> = () => {
       });
 
       list = list.filter((_, index) => index <= 500);
-      pendingUriTokens.current = list;
+      if (list.length) {
+        setPendingUriTokens(list);
+      }
     }
-  }, [activeContractAddress, dispatch, totalSupply, dataByContract]);
+  }, [
+    setPendingUriTokens,
+    forceUpdate,
+    activeContractAddress,
+    dispatch,
+    totalSupply,
+    dataByContract,
+    pendingUriTokens
+  ]);
 
   // Effect that dispatches the uris that are present from blockchain
   // but not yet present in the store
@@ -162,9 +171,8 @@ const Gallery: React.FC<RouteComponentProps> = () => {
       let tokensToDispatch: any[] = [];
       let tokensToDispatchIds: any[] = [];
 
-      pendingUriTokens.current.forEach((t, index) => {
+      pendingUriTokens.forEach((t, index) => {
         if (tokenURIs[index] && !dataByContract[activeContractAddress][t].uri) {
-          // TODO Optimize this
           tokensToDispatch = [
             ...tokensToDispatch,
             { tokenId: t, uri: tokenURIs[index][0] }
@@ -229,7 +237,7 @@ const Gallery: React.FC<RouteComponentProps> = () => {
       imagesLoadedMap.current = {};
       imageDelayCounter.current = 0;
       jsonDelayCounter.current = 0;
-      pendingUriTokens.current = [];
+      setPendingUriTokens([]);
       downloadedMetadataTokens.current = [];
     }
   }, [activeContractAddress, prevActiveContractAddress]);
@@ -381,8 +389,6 @@ const Gallery: React.FC<RouteComponentProps> = () => {
     visibleStartIndex,
     visibleStopIndex
   }: any) => {
-
-
     Object.values(delayedImagesMap.current).forEach((e: any) => {
       if (e && e.controller) {
         e.controller.abort();
