@@ -1,3 +1,4 @@
+import { createRef } from "react";
 import { Box } from "@chakra-ui/react";
 
 import "./App.css";
@@ -7,12 +8,13 @@ import Header from "./Header";
 import Navigator from "./Navigator";
 
 const App = () => {
+  const listRef = createRef();
   return (
     <Box pr="30px">
-      <Navigator />
+      <Navigator listRef={listRef} />
       <Header />
       <Box as="main" pt="10px">
-        <Gallery />
+        <Gallery listRef={listRef} />
       </Box>
     </Box>
   );

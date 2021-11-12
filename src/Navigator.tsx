@@ -1,11 +1,13 @@
 import { useEffect, useState, Fragment } from "react";
-import { Box, Flex } from "@chakra-ui/react";
+import { Box, Flex, Link } from "@chakra-ui/react";
 import { RootState } from "./redux/store";
 import useTokenByIndex from "./hooks/useTokenByIndex";
 import useTotalSupply from "./hooks/useTotalSupply";
 import { useSelector } from "react-redux";
 
-const Navigator = () => {
+const Navigator = ({ listRef }) => {
+  const containerWidth = window.innerWidth * 0.9;
+
   const activeContractAddress = useSelector(
     ({ contracts: { activeContractAddress } }: RootState) =>
       activeContractAddress
@@ -13,6 +15,10 @@ const Navigator = () => {
   const dataByContract = useSelector(
     ({ contracts: { dataByContract } }: RootState) => dataByContract
   );
+  const itemSize = useSelector(
+    ({ options: { itemSize } }: RootState) => itemSize
+  );
+
   const totalSupply = useTotalSupply(activeContractAddress);
   const [tokensByIndex] = useTokenByIndex(activeContractAddress, [0]);
   const initialValue = tokensByIndex ? tokensByIndex[0] : null;
@@ -102,7 +108,15 @@ const Navigator = () => {
                 growthPercentage != null ? 20 - 10 * growthPercentage : 10
               }
             >
-              {num}
+              <Link
+                onClick={() => {
+                  const times = Math.floor(containerWidth / itemSize);
+                  const numTo = Math.floor(num / times);
+                  listRef.current.scrollToItem(numTo, "start");
+                }}
+              >
+                {num}
+              </Link>
             </Box>
           );
         })}
