@@ -81,8 +81,8 @@ const Header = () => {
           <Heading textAlign="center" as="h1">
             NFT Explorer
           </Heading>
-          <Box textAlign="center" pt={5} pb={5} pl={5} pr={5}>
-            Use an<b> Ethereum ERC721</b> Contract Address with the
+          <Box pt={5} pb={5} pl={5} pr={5}>
+            Enter an<b> Ethereum ERC721</b> Contract Address with the
             <b>
               {" "}
               <Link href="https://eips.ethereum.org/EIPS/eip-721">

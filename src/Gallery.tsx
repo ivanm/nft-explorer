@@ -451,10 +451,17 @@ const Gallery = ({ listRef }) => {
                   direction="column"
                 >
                   <Text fontSize={40}>#{tokenId}</Text>
-                  {!imagesLoadedMap.current[tokenId] ? (
+                  {true ? (
                     <Flex>
                       <Text ml={2} fontSize={10}>
-                        LOADING...
+                        {imagesLoadedMap.current[tokenId] &&
+                        dataByContract[activeContractAddress][tokenId].json &&
+                        dataByContract[activeContractAddress][tokenId].json.name
+                          ? dataByContract[activeContractAddress][tokenId].json
+                              .name
+                          : !dataByContract[activeContractAddress][tokenId].json
+                          ? "LOADING METADATA"
+                          : "LOADING IMAGE"}
                       </Text>
                     </Flex>
                   ) : null}
