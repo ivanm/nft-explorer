@@ -25,7 +25,6 @@ import ipfsGatewayUrl from "./helpers/ipfsGatewayUrl";
 import sleep from "./helpers/sleep";
 
 const Gallery = ({ listRef }) => {
-
   // Common hooks
   const forceUpdate = useForceUpdate();
 
@@ -148,7 +147,10 @@ const Gallery = ({ listRef }) => {
       });
 
       list = list.filter((_, index) => index <= 500);
-      if (list.length) {
+      if (
+        list.length &&
+        JSON.stringify(list) !== JSON.stringify(pendingUriTokens)
+      ) {
         setPendingUriTokens(list);
       }
     }
