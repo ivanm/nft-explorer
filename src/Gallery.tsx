@@ -459,6 +459,9 @@ const Gallery = ({ listRef }) => {
                         dataByContract[activeContractAddress][tokenId].json.name
                           ? dataByContract[activeContractAddress][tokenId].json
                               .name
+                          : !delayedImagesMap.current[tokenId] &&
+                            !delayedJsonMap.current[tokenId]
+                          ? "\u00A0"
                           : !dataByContract[activeContractAddress][tokenId].json
                           ? "LOADING METADATA"
                           : "LOADING IMAGE"}
@@ -522,7 +525,7 @@ const Gallery = ({ listRef }) => {
                       itemSize={itemSize}
                       width={window.innerWidth}
                       onScroll={onScroll}
-                      onItemsRendered={debounce(onItemsRendered, 2000)}
+                      onItemsRendered={debounce(onItemsRendered, 1000)}
                     >
                       {cellRenderer}
                     </List>

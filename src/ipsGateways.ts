@@ -10,6 +10,18 @@ const ipsGateways: any[] = [
   },
   {
     name: "infura-ipfs.io"
+  },
+  {
+    name: "gateway.pinata.cloud"
+  },
+  {
+    name: "ipfs.io"
+  },
+  {
+    name: "gateway.ipfs.io"
+  },
+  {
+    name: "ravencoinipfs-gateway.com"
   }
 ];
 

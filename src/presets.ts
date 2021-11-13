@@ -42,6 +42,21 @@ const presets: any[] = [
     name: "Bored Ape Yacht Club",
     address: "0xBC4CA0EdA7647A8aB7C2061c2E118A18a936f13D",
     options: { cors: true }
+  },
+  {
+    name: "CryptoMories",
+    address: "0x1a2F71468F656E97c2F86541E57189F59951efe7",
+    options: { cors: true }
+  },
+  {
+    name: "Outlaw Gals",
+    address: "0x62EFd38a5efd7cfDB1c6E1c50F3083Af636D1b40",
+    options: { cors: true }
+  },
+  {
+    name: "MutantCats",
+    address: "0xaAdBA140Ae5e4c8a9eF0Cc86EA3124b446e3E46A",
+    options: { cors: true }
   }
 ];
 
