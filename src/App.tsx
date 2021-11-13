@@ -10,7 +10,7 @@ import Navigator from "./Navigator";
 const App = () => {
   const listRef = createRef();
   return (
-    <Box pr="30px">
+    <Box pr="90px">
       <Navigator listRef={listRef} />
       <Header />
       <Box as="main" pt="10px">

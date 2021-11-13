@@ -83,9 +83,11 @@ const Navigator = ({ listRef }) => {
     chunks = [
       initialValue.toNumber(),
       ...items,
-      Object.keys(dataByContract[activeContractAddress])[
-        Object.keys(dataByContract[activeContractAddress]).length - 1
-      ]
+      parseInt(
+        Object.keys(dataByContract[activeContractAddress])[
+          Object.keys(dataByContract[activeContractAddress]).length - 1
+        ]
+      )
     ];
   }
 
@@ -104,7 +106,7 @@ const Navigator = ({ listRef }) => {
   const offset = 1000;
   let itemView = totalSupply ? totalSupply.toNumber() * scrollPercentage : 1;
 
-  return isReady ? (
+  return (
     <Fragment>
       <Flex
         position="fixed"
@@ -114,46 +116,52 @@ const Navigator = ({ listRef }) => {
         height={windowSize.height}
         direction="column"
         justify="space-between"
+        bg="gray.900"
+        pb="15px"
+        pt="15px"
+        pl="10px"
       >
-        {chunks.map((num, index) => {
-          let growthPercentage: number | null = null;
-          if (itemView >= num && itemView < num + offset) {
-            growthPercentage = itemView === 0 ? 0 : (itemView - num) / offset;
-          } else if (itemView <= num && itemView > num - offset) {
-            growthPercentage = (num - itemView) / offset;
-          }
-          return (
-            <Box
-              key={index}
-              textAlign="end"
-              mr={2}
-              fontSize={
-                growthPercentage != null ? 20 - 10 * growthPercentage : 10
-              }
-            >
-              <Link
-                onClick={() => {
-                  const times = Math.floor(containerWidth / itemSize);
-                  const numTo = Math.floor(num / times);
-                  listRef.current.scrollToItem(numTo, "start");
-                }}
+        {isReady &&
+          chunks.map((num, index) => {
+            let growthPercentage: number | null = null;
+            if (itemView >= num && itemView < num + offset) {
+              growthPercentage = itemView === 0 ? 0 : (itemView - num) / offset;
+            } else if (itemView <= num && itemView > num - offset) {
+              growthPercentage = (num - itemView) / offset;
+            }
+            return (
+              <Box
+                key={index}
+                textAlign="end"
+                mr={2}
+                fontSize={
+                  growthPercentage != null ? 20 - 10 * growthPercentage : 10
+                }
               >
-                {num}
-              </Link>
-            </Box>
-          );
-        })}
+                <Link
+                  onClick={() => {
+                    const times = Math.floor(containerWidth / itemSize);
+                    const numTo = Math.floor(num / times);
+                    listRef.current.scrollToItem(numTo, "start");
+                  }}
+                >
+                  {num.toLocaleString()}
+                </Link>
+              </Box>
+            );
+          })}
       </Flex>
       <Box
-        display="none"
+        width="70px"
+        opacity="0.1"
+        bg="white"
+        height="2px"
         position="fixed"
         fontSize={10}
-        right={indicatorPosition.x}
+        right={0}
         top={indicatorPosition.y}
-      >
-        -
-      </Box>
+      />
     </Fragment>
-  ) : null;
+  );
 };
 export default Navigator;

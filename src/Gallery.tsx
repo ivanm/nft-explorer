@@ -93,7 +93,7 @@ const Gallery = ({ listRef }) => {
   // Updates the state  with the window values
   const resize = useCallback(() => {
     if (window.innerWidth < 500) {
-      dispatch(setItemSize(120));
+      dispatch(setItemSize(100));
     } else {
       dispatch(setItemSize(200));
     }
@@ -450,24 +450,24 @@ const Gallery = ({ listRef }) => {
                   align="center"
                   direction="column"
                 >
-                  <Text fontSize={40}>#{tokenId}</Text>
-                  {true ? (
-                    <Flex>
-                      <Text ml={2} fontSize={10}>
-                        {imagesLoadedMap.current[tokenId] &&
-                        dataByContract[activeContractAddress][tokenId].json &&
-                        dataByContract[activeContractAddress][tokenId].json.name
-                          ? dataByContract[activeContractAddress][tokenId].json
-                              .name
-                          : !delayedImagesMap.current[tokenId] &&
-                            !delayedJsonMap.current[tokenId]
-                          ? "\u00A0"
-                          : !dataByContract[activeContractAddress][tokenId].json
-                          ? "LOADING METADATA"
-                          : "LOADING IMAGE"}
-                      </Text>
-                    </Flex>
-                  ) : null}
+                  <Text fontSize={{ base: 18, sm: 25, md: 40 }}>
+                    #{tokenId.toLocaleString()}
+                  </Text>
+                  <Flex>
+                    <Text ml={2} fontSize={{ base: 7, sm: 8, md: 10 }}>
+                      {imagesLoadedMap.current[tokenId] &&
+                      dataByContract[activeContractAddress][tokenId].json &&
+                      dataByContract[activeContractAddress][tokenId].json.name
+                        ? dataByContract[activeContractAddress][tokenId].json
+                            .name
+                        : !delayedImagesMap.current[tokenId] &&
+                          !delayedJsonMap.current[tokenId]
+                        ? "\u00A0"
+                        : !dataByContract[activeContractAddress][tokenId].json
+                        ? "LOADING METADATA"
+                        : "LOADING IMAGE"}
+                    </Text>
+                  </Flex>
                 </Flex>
                 {imagesLoadedMap.current[tokenId] &&
                 dataByContract[activeContractAddress][tokenId] &&
