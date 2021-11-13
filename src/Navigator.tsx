@@ -1,4 +1,4 @@
-import { useEffect, useState, Fragment } from "react";
+import { useEffect, useState, useCallback, Fragment } from "react";
 import { Box, Flex, Link } from "@chakra-ui/react";
 import { RootState } from "./redux/store";
 import useTokenByIndex from "./hooks/useTokenByIndex";
@@ -7,6 +7,29 @@ import { useSelector } from "react-redux";
 
 const Navigator = ({ listRef }) => {
   const containerWidth = window.innerWidth * 0.9;
+  const [windowSize, setWindowSize] = useState({
+    width: window.innerWidth,
+    height: window.innerHeight
+  });
+  // Updates the state  with the window values
+  const resize = useCallback(() => {
+    setWindowSize({
+      height: window.innerHeight,
+      width: window.innerWidth
+    });
+  }, []);
+
+  // Effect to recalculate size
+  useEffect(() => {
+    resize();
+    window.addEventListener("resize", () => {
+      resize();
+    });
+
+    return () => {
+      window.removeEventListener("resize", resize);
+    };
+  }, [resize]);
 
   const activeContractAddress = useSelector(
     ({ contracts: { activeContractAddress } }: RootState) =>
@@ -88,7 +111,7 @@ const Navigator = ({ listRef }) => {
         right="0"
         top="0"
         width="70px"
-        height="100vh"
+        height={windowSize.height}
         direction="column"
         justify="space-between"
       >

@@ -20,7 +20,7 @@ const GalleryModal = ({ tokenId, imgUrl, onClose }: GalleryModalProps) => {
     };
   }, []);
 
-  const [, setWindowSize] = useState({
+  const [windowSize, setWindowSize] = useState({
     width: window.innerWidth,
     height: window.innerHeight
   });
@@ -69,7 +69,11 @@ const GalleryModal = ({ tokenId, imgUrl, onClose }: GalleryModalProps) => {
           >
             <Image
               maxWidth="none"
-              height={dimension === "height" ? "calc(100vh - 50px)" : "auto"}
+              height={
+                dimension === "height"
+                  ? `calc(${windowSize.height}px - 50px)`
+                  : "auto"
+              }
               width={dimension === "width" ? "calc(100vw - 50px)" : "auto"}
               objectFit="cover"
               src={imgUrl}
