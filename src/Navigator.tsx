@@ -46,7 +46,11 @@ const Navigator = ({ listRef }) => {
   const [tokensByIndex] = useTokenByIndex(activeContractAddress, [0]);
   const initialValue = tokensByIndex ? tokensByIndex[0] : null;
 
-  const [indicatorPosition, setIndicatorPosition] = useState({ x: 50, y: 0 });
+  const offsetScroll = 30;
+  const [indicatorPosition, setIndicatorPosition] = useState({
+    x: 0,
+    y: offsetScroll
+  });
   const [scrollPercentage, setScrollPercentage] = useState(0);
   useEffect(() => {
     const fn = (e: any) => {
@@ -54,7 +58,16 @@ const Navigator = ({ listRef }) => {
         (window.scrollY / document.body.offsetHeight) * window.innerHeight;
 
       setScrollPercentage(window.scrollY / document.body.offsetHeight);
-      setIndicatorPosition({ x: indicatorPosition.x, y: yPos });
+      console.log(window.scrollY / document.body.offsetHeight);
+      const perCentage = window.scrollY / document.body.offsetHeight;
+      setIndicatorPosition({
+        x: indicatorPosition.x,
+        y:
+          yPos +
+          offsetScroll -
+          perCentage * offsetScroll -
+          perCentage * offsetScroll
+      });
     };
 
     window.addEventListener("scroll", fn);
@@ -158,7 +171,7 @@ const Navigator = ({ listRef }) => {
         height="2px"
         position="fixed"
         fontSize={10}
-        right={0}
+        right={indicatorPosition.x}
         top={indicatorPosition.y}
       />
     </Fragment>
