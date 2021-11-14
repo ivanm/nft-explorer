@@ -51,22 +51,22 @@ const Navigator = ({ listRef }) => {
     x: 0,
     y: offsetScroll
   });
-  const [scrollPercentage, setScrollPercentage] = useState(0);
+  const [ratio, setRatio] = useState(0);
   useEffect(() => {
     const fn = (e: any) => {
       const yPos =
         (window.scrollY / document.body.offsetHeight) * window.innerHeight;
 
-      setScrollPercentage(window.scrollY / document.body.offsetHeight);
-      console.log(window.scrollY / document.body.offsetHeight);
-      const perCentage = window.scrollY / document.body.offsetHeight;
+      setRatio(window.scrollY / document.body.offsetHeight);
+
+      const ratio = window.scrollY / document.body.offsetHeight;
       setIndicatorPosition({
         x: indicatorPosition.x,
         y:
           yPos +
           offsetScroll -
-          perCentage * offsetScroll -
-          perCentage * offsetScroll
+          ratio * offsetScroll -
+          ratio * offsetScroll
       });
     };
 
@@ -117,7 +117,7 @@ const Navigator = ({ listRef }) => {
     initialValue &&
     dataByContract[activeContractAddress];
   const offset = 1000;
-  let itemView = totalSupply ? totalSupply.toNumber() * scrollPercentage : 1;
+  let itemView = totalSupply ? totalSupply.toNumber() * ratio : 1;
 
   return (
     <Fragment>
