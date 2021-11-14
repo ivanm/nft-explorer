@@ -38,6 +38,9 @@ const Navigator = ({ listRef }) => {
   const dataByContract = useSelector(
     ({ contracts: { dataByContract } }: RootState) => dataByContract
   );
+  const missingUriByContract = useSelector(
+    ({ contracts: { missingUriByContract } }: RootState) => missingUriByContract
+  );
   const itemSize = useSelector(
     ({ options: { itemSize } }: RootState) => itemSize
   );
@@ -62,11 +65,7 @@ const Navigator = ({ listRef }) => {
       const ratio = window.scrollY / document.body.offsetHeight;
       setIndicatorPosition({
         x: indicatorPosition.x,
-        y:
-          yPos +
-          offsetScroll -
-          ratio * offsetScroll -
-          ratio * offsetScroll
+        y: yPos + offsetScroll - ratio * offsetScroll - ratio * offsetScroll
       });
     };
 
@@ -104,12 +103,10 @@ const Navigator = ({ listRef }) => {
     ];
   }
 
+  // Flag that indicates all URIs of the gallery have been obtained
   const loadedUris =
-    dataByContract &&
-    dataByContract[activeContractAddress] &&
-    Object.values(dataByContract[activeContractAddress]).every(
-      (e: any) => e.uri
-    );
+    missingUriByContract[activeContractAddress] &&
+    missingUriByContract[activeContractAddress].length === 0;
 
   const isReady =
     loadedUris &&

@@ -40,6 +40,9 @@ const Gallery = ({ listRef }) => {
     ({ contracts: { activeContractAddress } }: RootState) =>
       activeContractAddress
   );
+  const missingUriByContract = useSelector(
+    ({ contracts: { missingUriByContract } }: RootState) => missingUriByContract
+  );
   const corsProxyUrl = useSelector(
     ({ options: { corsProxyUrl } }: RootState) => corsProxyUrl
   );
@@ -53,19 +56,10 @@ const Gallery = ({ listRef }) => {
   // Calculated
   const containerWidth = window.innerWidth * 0.9;
   const wrongNetWork = chainId !== configChainId;
-  const missingUri = dataByContract[activeContractAddress]
-    ? Object.values(dataByContract[activeContractAddress]).filter(
-        ({ uri }: any) => !uri
-      ).length
-    : null;
   // Flag that indicates all URIs of the gallery have been obtained
   const loadedUris =
-    dataByContract &&
-    dataByContract[activeContractAddress] &&
-    Object.values(dataByContract[activeContractAddress]).every(
-      (e: any) => e.uri
-    );
-
+    missingUriByContract[activeContractAddress] &&
+    missingUriByContract[activeContractAddress].length === 0;
   // States
   // State of the modal, stores the tokenId to show or null if hidden
   const [tokenModal, setTokenModal] = useState<number | null>(null);
@@ -139,14 +133,9 @@ const Gallery = ({ listRef }) => {
   // Finds the next tokens that have not got any uri
   useEffect(() => {
     if (totalSupply && dataByContract[activeContractAddress]) {
-      let list: number[] = [];
-      Object.keys(dataByContract[activeContractAddress]).forEach(key => {
-        if (!dataByContract[activeContractAddress][key].uri) {
-          list = [...list, parseInt(key)];
-        }
-      });
-
-      list = list.filter((_, index) => index <= 500);
+      let list: number[] = missingUriByContract[activeContractAddress].filter(
+        (_, index) => index <= 500
+      );
       if (
         list.length &&
         JSON.stringify(list) !== JSON.stringify(pendingUriTokens)
@@ -161,6 +150,7 @@ const Gallery = ({ listRef }) => {
     dispatch,
     totalSupply,
     dataByContract,
+    missingUriByContract,
     pendingUriTokens
   ]);
 
@@ -548,8 +538,14 @@ const Gallery = ({ listRef }) => {
                 : "Please connect to Ethereum Network"}
             </Text>
             <Text textAlign="center">
-              {totalSupply && missingUri && missingUri < totalSupply.toNumber()
-                ? `[ ${missingUri.toLocaleString()} / ${
+              {totalSupply &&
+              !loadedUris &&
+              missingUriByContract[activeContractAddress] &&
+              missingUriByContract[activeContractAddress].length <
+                totalSupply.toNumber()
+                ? `[ ${missingUriByContract[
+                    activeContractAddress
+                  ].length.toLocaleString()} / ${
                     totalSupply ? totalSupply.toNumber().toLocaleString() : ""
                   } ]`
                 : ""}
