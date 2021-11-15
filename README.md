@@ -11,8 +11,8 @@ Visualize ERC721 NFT Collections directly from the blockchain. An alternative to
 - Browse big collections (9,999+ of items) on a single page.
 - Navigation on the right side makes easier to find the position within the table and the remaining items on the list.
 - Only the data that is visualized is the data that is rendered. (Thanks to https://github.com/bvaughn/react-window !)
-- Metadata download and image download is also triggered only when the user is visualizing the current item to save bandwidth and loading times.
-- All the data is cached in localstorage to avoid unescesary calls to the APIs and blockhain.
+- Metadata and image download is also triggered only when the user is visualizing the current items to save bandwidth and improve loading times.
+- All the data is cached in localstorage to avoid unnecessary calls to the APIs and blockchain.
 - Optional CORS Proxy for full compatibility.
 - IPFS Gateway can be selected from a public server list. 
 
