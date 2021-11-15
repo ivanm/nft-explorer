@@ -8,28 +8,36 @@ Visualize ERC721 NFT Collections directly from the blockchain. An alternative to
 
 ## Features:
 
-- User can browse big collections (9,999+ of items) on a single table.
-- Navigation on the right side makes easier to find out the position withinn the table.
-- Only the data that is visualized is the ony data that is rendered. (Thanks to https://github.com/bvaughn/react-window !)
-- Metadata download and image download is also generated only when the user is visualizing the current item.
-- Localstorage is used for caching the data from the blockchain and the data from the APIs to avoid unescesary calls.
-- Uses an optional CORS Proxy for full compatibility.
-- User can use the IPFS Gateway they prefer.
+- Browse big collections (9,999+ of items) on a single page.
+- Navigation on the right side makes easier to find the position within the table and the remaining items on the list.
+- Only the data that is visualized is the data that is rendered. (Thanks to https://github.com/bvaughn/react-window !)
+- Metadata download and image download is also triggered only when the user is visualizing the current item to save bandwidth and loading times.
+- All the data is cached in localstorage to avoid unescesary calls to the APIs and blockhain.
+- Optional CORS Proxy for full compatibility.
+- IPFS Gateway can be selected from a public server list. 
 
 ## Options
 
 ### CORS Proxy
 
-Not al APIs add the correct CORS Headers, so an optional CORS Proxy can be used. Tested with https://github.com/Glifery/cors-proxy and https://github.com/Rob--W/cors-anywhere
+Not all APIs add the correct CORS Headers to their requests, so an optional CORS Proxy can be used. 
+Options testes: https://github.com/Glifery/cors-proxy and https://github.com/Rob--W/cors-anywhere
 
 ### IPFS Gateway
 
-The Gateway for IPFS can be selected on the options, please refer to https://ipfs.github.io/public-gateway-checker/ for reference on the status.
+The Gateway for IPFS can be selected on the options, please refer to https://ipfs.github.io/public-gateway-checker/ for reference on the status and connection speed.
+
+## Run locally
+
+- Clone this repo
+- Run `yarn install` to install dependencies.
+- Run `yarn start` to deploy local server.
 
 ## Under the hood
 
-- TypeScript
-- React
+- React 17
+- TypeScript 
+- React Window
 - Redux
 - Chakra UI 
 - useDapp
