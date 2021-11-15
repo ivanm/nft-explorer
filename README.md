@@ -20,12 +20,15 @@ Visualize ERC721 NFT Collections directly from the blockchain. An alternative to
 
 ### CORS Proxy
 
-Not all APIs add the correct CORS Headers to their requests, so an optional CORS Proxy can be used. 
-Options testes: https://github.com/Glifery/cors-proxy and https://github.com/Rob--W/cors-anywhere
+Not all APIs add the correct CORS Headers to their requests, so an optional CORS Proxy can be used.
+
+Tested with:
+- https://github.com/Glifery/cors-proxy
+- https://github.com/Rob--W/cors-anywhere
 
 ### IPFS Gateway
 
-The Gateway for IPFS can be selected on the options, please refer to https://ipfs.github.io/public-gateway-checker/ for reference on the status and connection speed.
+The Gateway for IPFS can be selected on the options, please refer to https://ipfs.github.io/public-gateway-checker/ for reference on the current status and connection speed.
 
 ## Run locally
 
