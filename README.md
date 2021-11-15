@@ -4,6 +4,8 @@ https://ivanm.github.io/nft-explorer/
 
 Visualize ERC721 NFT Collections directly from the blockchain. An alternative to OpenSea/Rarible, etc.
 
+![screenshot](https://raw.githubusercontent.com/ivanm/nft-explorer/main/misc/screenshot1.png)
+
 ## Features:
 
 - User can browse big collections (9,999+ of items) on a single table.
