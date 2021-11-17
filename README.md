@@ -1,6 +1,6 @@
 ### NFT Explorer
 
-https://ivanm.github.io/nft-explorer/
+https://nft-explorer.vaan.dev/
 
 Visualize ERC721 NFT Collections directly from the blockchain. An alternative to OpenSea/Rarible, etc.
 
