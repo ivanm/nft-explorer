@@ -8,7 +8,7 @@ interface OptionState {
 
 export const initialState: OptionState = {
   corsProxyUrl:
-    "https://e6bp05g0dh.execute-api.us-east-1.amazonaws.com/dev?url=",
+    "https://nft-explorer-proxy.vaan.dev/?url=",
   ipfsGateway: "infura-ipfs.io",
   itemSize: 200
 };
