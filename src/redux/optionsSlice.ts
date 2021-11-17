@@ -1,4 +1,5 @@
 import { createSlice } from "@reduxjs/toolkit";
+import { proxyUrl } from "../constants";
 
 interface OptionState {
   corsProxyUrl: string | null;
@@ -7,8 +8,7 @@ interface OptionState {
 }
 
 export const initialState: OptionState = {
-  corsProxyUrl:
-    "https://nft-explorer-proxy.vaan.dev/?url=",
+  corsProxyUrl: proxyUrl,
   ipfsGateway: "infura-ipfs.io",
   itemSize: 200
 };
