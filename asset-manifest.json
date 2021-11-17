@@ -1,20 +1,20 @@
 {
   "files": {
-    "main.css": "/nft-explorer/static/css/main.8c8b27cf.chunk.css",
-    "main.js": "/nft-explorer/static/js/main.3603572d.chunk.js",
-    "main.js.map": "/nft-explorer/static/js/main.3603572d.chunk.js.map",
-    "runtime-main.js": "/nft-explorer/static/js/runtime-main.b899b613.js",
-    "runtime-main.js.map": "/nft-explorer/static/js/runtime-main.b899b613.js.map",
-    "static/js/2.f89098a0.chunk.js": "/nft-explorer/static/js/2.f89098a0.chunk.js",
-    "static/js/2.f89098a0.chunk.js.map": "/nft-explorer/static/js/2.f89098a0.chunk.js.map",
-    "index.html": "/nft-explorer/index.html",
-    "static/css/main.8c8b27cf.chunk.css.map": "/nft-explorer/static/css/main.8c8b27cf.chunk.css.map",
-    "static/js/2.f89098a0.chunk.js.LICENSE.txt": "/nft-explorer/static/js/2.f89098a0.chunk.js.LICENSE.txt"
+    "main.css": "/static/css/main.8c8b27cf.chunk.css",
+    "main.js": "/static/js/main.01df5bee.chunk.js",
+    "main.js.map": "/static/js/main.01df5bee.chunk.js.map",
+    "runtime-main.js": "/static/js/runtime-main.94d4ba51.js",
+    "runtime-main.js.map": "/static/js/runtime-main.94d4ba51.js.map",
+    "static/js/2.617224cb.chunk.js": "/static/js/2.617224cb.chunk.js",
+    "static/js/2.617224cb.chunk.js.map": "/static/js/2.617224cb.chunk.js.map",
+    "index.html": "/index.html",
+    "static/css/main.8c8b27cf.chunk.css.map": "/static/css/main.8c8b27cf.chunk.css.map",
+    "static/js/2.617224cb.chunk.js.LICENSE.txt": "/static/js/2.617224cb.chunk.js.LICENSE.txt"
   },
   "entrypoints": [
-    "static/js/runtime-main.b899b613.js",
-    "static/js/2.f89098a0.chunk.js",
+    "static/js/runtime-main.94d4ba51.js",
+    "static/js/2.617224cb.chunk.js",
     "static/css/main.8c8b27cf.chunk.css",
-    "static/js/main.3603572d.chunk.js"
+    "static/js/main.01df5bee.chunk.js"
   ]
 }
