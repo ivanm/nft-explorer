@@ -1,0 +1,10 @@
+please help me bro,i does not run the project in localhost 3000,so please help me and setup all .env file and kindly send me bro please
+
+
+const {
+  REACT_APP_ALCHEMY_API,
+  REACT_APP_CHAIN_ID,
+  REACT_APP_ETHERSCAN_URL,
+  REACT_APP_SITE_URL,
+  REACT_APP_PROXY_URL
+} = process.env;
